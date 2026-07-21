@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AliSQL 8.0.44-2 特性部署形态与源码实现分析</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #5b6472;
+      --brand: #0f766e;
+      --brand-2: #155e75;
+      --line: #d8dee9;
+      --code: #0f172a;
+      --code-bg: #eef2f7;
+      --warn-bg: #fff7ed;
+      --warn-line: #fb923c;
+      --ok-bg: #ecfdf5;
+      --ok-line: #10b981;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.72;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f766e, #155e75);
+      color: white;
+      padding: 48px 28px;
+    }
+
+    header .wrap,
+    main {
+      max-width: 1220px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 34px;
+      line-height: 1.25;
+    }
+
+    header p {
+      max-width: 920px;
+      margin: 8px 0 0;
+      color: #e0f2fe;
+      font-size: 16px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      gap: 24px;
+      padding: 28px;
+    }
+
+    nav {
+      position: sticky;
+      top: 20px;
+      align-self: start;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 6px 24px rgb(15 23 42 / 8%);
+    }
+
+    nav h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: var(--brand-2);
+    }
+
+    nav a {
+      display: block;
+      padding: 6px 0;
+      color: #334155;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    nav a:hover { color: var(--brand); }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 24px rgb(15 23 42 / 8%);
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      color: var(--brand-2);
+      font-size: 27px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+
+    h3 {
+      margin: 28px 0 12px;
+      color: #0f766e;
+      font-size: 21px;
+    }
+
+    h4 {
+      margin: 22px 0 10px;
+      color: #334155;
+      font-size: 17px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 24px;
+      background: white;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #e6f4f1;
+      color: #0f3f3a;
+      font-weight: 700;
+    }
+
+    code {
+      background: var(--code-bg);
+      color: var(--code);
+      border-radius: 5px;
+      padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      border-radius: 12px;
+      overflow-x: auto;
+      padding: 16px;
+      line-height: 1.55;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    .note,
+    .warning,
+    .success {
+      border-left: 5px solid var(--brand);
+      background: #eff6ff;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 10px;
+    }
+
+    .warning {
+      background: var(--warn-bg);
+      border-left-color: var(--warn-line);
+    }
+
+    .success {
+      background: var(--ok-bg);
+      border-left-color: var(--ok-line);
+    }
+
+    .mermaid {
+      margin: 16px 0 28px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+
+    .source-list li { margin-bottom: 6px; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #ccfbf1;
+      color: #115e59;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+      nav { position: static; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.mermaid) {
+        mermaid.initialize({
+          startOnLoad: true,
+          securityLevel: "loose",
+          theme: "default",
+          flowchart: { htmlLabels: true, curve: "basis" },
+          sequence: { mirrorActors: false }
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>AliSQL 8.0.44-2 特性部署形态与源码实现分析</h1>
+      <p>
+        本文针对文章《AliSQL 重磅开源版本发布》中提到的 DuckDB 分析引擎、VIDX、Native Flashback、
+        Persist Binlog Into Redo、Binlog Cache Free Flush 五项能力，结合阿里云官方文档、AliSQL
+        开源源码与 wiki，整理部署形态、使用方式、约束、缺陷和源码实现逻辑。
+      </p>
+      <p>
+        源码基线：AliSQL-8.0.44-2，核心提交引用：<code>a1251b660f1f8689ec5ad26dd260567949d4a7d6</code>。
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <nav>
+      <h2>目录</h2>
+      <a href="#summary">0. 总览</a>
+      <a href="#duckdb">1. DuckDB 分析引擎</a>
+      <a href="#vidx">2. VIDX 向量索引</a>
+      <a href="#flashback">3. Native Flashback</a>
+      <a href="#binlog-redo">4. Persist Binlog Into Redo</a>
+      <a href="#free-flush">5. Binlog Cache Free Flush</a>
+      <a href="#combined">6. 组合关系</a>
+      <a href="#risks">7. 重点风险</a>
+      <a href="#sources">8. 资料来源</a>
+    </nav>
+
+    <div>
+      <section id="summary">
+        <h2>0. 总览</h2>
+        <p>文章提到的五项能力可以分为两类：</p>
+        <ul>
+          <li><strong>业务能力：</strong>DuckDB 分析引擎、VIDX 向量索引、Native Flashback。</li>
+          <li><strong>事务提交与日志链路优化：</strong>Persist Binlog Into Redo、Binlog Cache Free Flush。</li>
+        </ul>
+
+        <table>
+          <thead>
+            <tr>
+              <th>特性</th>
+              <th>自建 AliSQL 部署形态</th>
+              <th>RDS 官方部署形态</th>
+              <th>主要场景</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>DuckDB 分析引擎</td>
+              <td>源码构建后以 <code>duckdb_mode=ON</code> 启用；可单实例混部或作为分析节点。</td>
+              <td>DuckDB 分析主实例；挂载到 RDS MySQL 高可用实例的 DuckDB 分析只读实例。</td>
+              <td>复杂 JOIN、聚合分析、HTAP。</td>
+            </tr>
+            <tr>
+              <td>VIDX 向量索引</td>
+              <td>内置 <code>vidx</code> daemon 插件，InnoDB 表使用 <code>VECTOR</code> + HNSW。</td>
+              <td>RDS MySQL 控制台启用向量存储；兼容 MySQL 协议和 SQL。</td>
+              <td>语义检索、推荐、多模态检索。</td>
+            </tr>
+            <tr>
+              <td>Native Flashback</td>
+              <td>启动 Flashback 任务并设置非零 <code>innodb_undo_retention</code>。</td>
+              <td>RDS MySQL Native Flashback，使用 <code>AS OF TIMESTAMP</code>。</td>
+              <td>误更新、误删除后的快速核查与恢复。</td>
+            </tr>
+            <tr>
+              <td>Persist Binlog Into Redo</td>
+              <td>开启 <code>persist_binlog_to_redo</code>，要求特定 binlog/复制参数。</td>
+              <td>RDS MySQL 参数开启，要求 <code>sync_binlog=1</code>、异步复制等。</td>
+              <td>小事务高并发提交优化。</td>
+            </tr>
+            <tr>
+              <td>Binlog Cache Free Flush</td>
+              <td>开启 <code>binlog_cache_free_flush</code>，大事务自动准入。</td>
+              <td>RDS 新实例默认开启；存量实例通过 <code>loose_binlog_cache_free_flush</code> 开启。</td>
+              <td>大事务提交优化，降低 Binlog 大文件复制阻塞。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="warning">
+          <strong>重要差异：</strong>文章中提到 Free Flush “与实例是否支持 DuckDB 无关”，但 AliSQL
+          8.0.44-2 源码和仓库 wiki 显示，DuckDB 在开启 binlog 时会注册额外 2PC 参与者，导致
+          Free Flush 在包含 DuckDB 的构建中通常回退普通 Group Commit。以当前源码逻辑为准。
+        </div>
+      </section>
+
+      <section id="duckdb">
+        <h2>1. DuckDB 分析引擎增强</h2>
+
+        <h3>1.1 部署形态</h3>
+        <div class="grid-2">
+          <div class="note">
+            <span class="badge">RDS</span>
+            <strong>DuckDB 分析主实例</strong>
+            <p>独立部署的数据库实例，类似常规 RDS MySQL 主实例，集群系列，一主多备，备份节点可读。</p>
+          </div>
+          <div class="note">
+            <span class="badge">RDS</span>
+            <strong>DuckDB 分析只读实例</strong>
+            <p>挂载到常规 RDS MySQL 高可用实例，通过 Row Binlog 同步数据，分析查询资源与主库隔离。</p>
+          </div>
+        </div>
+
+        <pre><code class="language-ini">[mysqld]
+duckdb_mode=ON
+duckdb_memory_limit=2147483648
+duckdb_threads=0
+duckdb_temp_directory=/path/to/duckdb-tmp</code></pre>
+
+        <pre><code class="language-sql">CREATE TABLE sales (
+  id BIGINT PRIMARY KEY,
+  region VARCHAR(32),
+  amount DECIMAL(18,2)
+) ENGINE=DuckDB;
+
+SELECT region, SUM(amount)
+FROM sales
+GROUP BY region;</code></pre>
+
+        <h3>1.2 源码架构图</h3>
+        <div class="mermaid">
+flowchart TB
+  Client[MySQL Client] --> Protocol[MySQL Protocol Layer]
+  Protocol --> Parser[SQL Parser / Resolver]
+  Parser --> Router{是否 DuckDB 表?}
+
+  Router -- InnoDB 表 --> MySQLExec[MySQL Executor]
+  MySQLExec --> InnoDB[InnoDB Handler]
+
+  Router -- DuckDB 表 --> DuckQuery[duckdb_query / duckdb_query_and_send]
+  DuckQuery --> DuckCtx[DuckdbThdContext]
+  DuckCtx --> DuckConn[DuckDB Connection]
+  DuckConn --> DuckCore[Embedded DuckDB Engine]
+
+  DuckCore --> DuckStorage[DuckDB Columnar Storage]
+  DuckCore --> ResultTranslator[Result Translator]
+  ResultTranslator --> Protocol
+        </div>
+
+        <h3>1.3 关键数据结构</h3>
+        <div class="mermaid">
+classDiagram
+  class DuckdbManager {
+    +CreateInstance()
+    +InitializeIfNeeded()
+    +CreateConnection()
+    -DuckDBDatabase database
+  }
+
+  class DuckdbThdContext {
+    +get_connection()
+    +duckdb_trans_commit()
+    +duckdb_trans_rollback()
+    +flush_appenders()
+    -DuckDBConnection connection
+    -DeltaAppenders appenders
+    -BatchState batchState
+  }
+
+  class ha_duckdb {
+    +create()
+    +write_row()
+    +update_row()
+    +delete_row()
+    +external_lock()
+  }
+
+  class DeltaAppender {
+    +append_row_insert()
+    +append_row_update()
+    +append_row_delete()
+    +flush()
+    +rollback()
+  }
+
+  DuckdbManager --> DuckdbThdContext
+  DuckdbThdContext --> DeltaAppender
+  ha_duckdb --> DuckdbThdContext
+        </div>
+
+        <h3>1.4 查询流程图</h3>
+        <div class="mermaid">
+flowchart TD
+  A[收到 SELECT] --> B[解析 SQL]
+  B --> C[检查表引擎]
+  C --> D{是否存在 DuckDB 表?}
+  D -- 否 --> E[走 MySQL/InnoDB 原生执行]
+  D -- 是 --> F{是否混合 DuckDB 与其他引擎?}
+  F -- 是 --> G[报错: 不支持混合查询]
+  F -- 否 --> H[设置 use_duckdb_computation_engine]
+  H --> I{duckdb_sql_normalization 是否开启?}
+  I -- 是 --> J[重写/规范化 MySQL SQL]
+  I -- 否 --> K[使用原始 SQL]
+  J --> L[duckdb_query_and_send]
+  K --> L
+  L --> M[DuckDB 执行]
+  M --> N[结果转 MySQL 协议]
+  N --> O[返回客户端]
+        </div>
+
+        <h3>1.5 复制 / Batch Apply 时序图</h3>
+        <div class="mermaid">
+sequenceDiagram
+  participant Primary as InnoDB 主库
+  participant Binlog as Row Binlog
+  participant Applier as DuckDB 复制线程
+  participant Handler as ha_duckdb
+  participant Appender as DeltaAppender
+  participant DuckDB as DuckDB Engine
+
+  Primary->>Binlog: 写 Row Events
+  Binlog->>Applier: Relay Log 回放
+  Applier->>Handler: write_row / update_row / delete_row
+  Handler->>Appender: append row 到 batch
+  Appender-->>Handler: 缓冲成功
+  Applier->>Handler: 事务提交
+  Handler->>Appender: flush_appenders()
+  Appender->>DuckDB: 批量 INSERT / DELETE / MERGE
+  DuckDB-->>Appender: 成功
+  Handler->>DuckDB: COMMIT
+        </div>
+
+        <h3>1.6 约束与缺陷</h3>
+        <ul>
+          <li>不支持 DuckDB 表与其他引擎表混合查询。</li>
+          <li>DuckDB 不原生支持 MySQL 2PC，AliSQL 做了专用提交、回放、恢复协议。</li>
+          <li>小事务高频复制到 DuckDB 可能产生复制延迟，需要 batch 参数调优。</li>
+          <li>SQL 兼容不是完整 MySQL，DDL、函数、数据类型、collation 需要业务验证。</li>
+          <li>单实例混部存在资源竞争，生产分析场景更推荐只读分析节点隔离。</li>
+        </ul>
+      </section>
+
+      <section id="vidx">
+        <h2>2. VIDX 原生向量索引</h2>
+
+        <h3>2.1 部署形态</h3>
+        <ul>
+          <li><strong>自建 AliSQL：</strong>内置 <code>vidx</code> daemon 插件，默认关闭。</li>
+          <li><strong>RDS MySQL：</strong>控制台启用向量存储，支持最高 16,383 维，兼容 MySQL 协议、JDBC、ORM、DTS、DMS、备份恢复。</li>
+        </ul>
+
+        <pre><code class="language-sql">SET GLOBAL vidx_disabled = OFF;
+SET SESSION transaction_isolation = 'READ-COMMITTED';
+
+CREATE TABLE documents (
+  id BIGINT PRIMARY KEY,
+  content TEXT,
+  embedding VECTOR(3)
+) ENGINE=InnoDB;
+
+CREATE VECTOR INDEX idx_embedding
+ON documents(embedding)
+M=6 DISTANCE=COSINE;
+
+SELECT id,
+       VEC_DISTANCE_COSINE(embedding, VEC_FROMTEXT('[0.1,0.2,0.3]')) AS distance
+FROM documents
+ORDER BY distance
+LIMIT 10;</code></pre>
+
+        <h3>2.2 源码架构图</h3>
+        <div class="mermaid">
+flowchart TB
+  SQL[SQL: VECTOR / CREATE VECTOR INDEX / VEC_DISTANCE] --> Parser[Parser]
+  Parser --> FieldVector[Field_vector]
+  Parser --> VIDXPlugin[vidx daemon plugin]
+
+  VIDXPlugin --> Optimizer[Optimizer: test_if_cheaper_vector_ordering]
+  Optimizer --> Executor[IndexScanIterator]
+
+  Executor --> HNSW[HNSW Search Engine]
+  HNSW --> ShareCache[MHNSW_Share: TABLE_SHARE 共享缓存]
+  HNSW --> TrxCache[MHNSW_Trx: 会话事务缓存]
+  HNSW --> HLIndex[隐藏 InnoDB 辅助表]
+
+  Executor --> BaseTable[InnoDB 主表]
+        </div>
+
+        <h3>2.3 关键数据结构</h3>
+        <div class="mermaid">
+classDiagram
+  class Field_vector {
+    +get_dimensions()
+    +store()
+    +sql_type()
+    -floatArray binaryStorage
+  }
+
+  class FVector {
+    +distance()
+    +quantize()
+    -int16Vector data
+    -float scale
+    -float precomputedNorm
+  }
+
+  class FVectorNode {
+    +load_vector()
+    +load_neighbors()
+    -layer
+    -tref
+    -neighbors
+  }
+
+  class MHNSW_Share {
+    +node_cache
+    +startNode
+    +M
+    +metric
+    +reset()
+  }
+
+  class MHNSW_Trx {
+    +privateNodeCache
+    +commitMerge()
+    +rollbackDiscard()
+  }
+
+  class HiddenHLIndexTable {
+    +layer
+    +tref
+    +vec
+    +neighbors
+  }
+
+  Field_vector --> FVector
+  FVectorNode --> FVector
+  MHNSW_Share --> FVectorNode
+  MHNSW_Trx --> FVectorNode
+  HiddenHLIndexTable --> FVectorNode
+        </div>
+
+        <h3>2.4 建索引流程图</h3>
+        <div class="mermaid">
+flowchart TD
+  A[CREATE VECTOR INDEX] --> B[Parser 识别 VECTOR INDEX]
+  B --> C[检查 vidx_disabled]
+  C --> D[检查表引擎是否 InnoDB]
+  D --> E[检查列是否 VECTOR]
+  E --> F[检查 M / DISTANCE 参数]
+  F --> G[创建隐藏 HLIndex InnoDB 表]
+  G --> H[扫描主表已有行]
+  H --> I{向量是否 NULL?}
+  I -- 是 --> H
+  I -- 否 --> J[mhnsw_insert 建图]
+  J --> K[写入辅助表 layer/tref/vec/neighbors]
+  K --> H
+        </div>
+
+        <h3>2.5 查询流程图</h3>
+        <div class="mermaid">
+flowchart TD
+  A[SELECT ... ORDER BY VEC_DISTANCE LIMIT N] --> B[Optimizer 分析 ORDER BY]
+  B --> C{是否单个距离函数?}
+  C -- 否 --> FullScan[普通扫描]
+  C -- 是 --> D{是否 ASC + LIMIT?}
+  D -- 否 --> FullScan
+  D -- 是 --> E{列 + 常量向量?}
+  E -- 否 --> FullScan
+  E -- 是 --> F{距离类型与索引匹配?}
+  F -- 否 --> FullScan
+  F -- 是 --> G[选择 HNSW 向量索引]
+  G --> H[mhnsw_read_first]
+  H --> I[高层图贪心搜索]
+  I --> J[第 0 层 ef_search 扩展]
+  J --> K[返回候选 tref]
+  K --> L[回表读取 InnoDB 行]
+  L --> M[普通字段过滤 + 排序]
+  M --> N[返回 LIMIT N]
+        </div>
+
+        <h3>2.6 DML 维护时序图</h3>
+        <div class="mermaid">
+sequenceDiagram
+  participant SQL as SQL DML
+  participant Handler as InnoDB Handler
+  participant VIDX as VIDX Plugin
+  participant Trx as MHNSW_Trx
+  participant Share as MHNSW_Share
+  participant HL as Hidden HLIndex Table
+
+  SQL->>Handler: INSERT / UPDATE / DELETE
+  Handler->>VIDX: hlindexes_on_insert/update/delete
+  VIDX->>Trx: 修改事务私有 HNSW 节点
+  VIDX->>HL: 写入 / 失效辅助表节点
+  SQL->>Handler: COMMIT
+  Handler->>VIDX: VIDX commit hook
+  VIDX->>Share: 合并或失效共享缓存
+        </div>
+
+        <h3>2.7 约束与缺陷</h3>
+        <ul>
+          <li>仅支持 InnoDB 表。</li>
+          <li>要求 Read Committed 隔离级别。</li>
+          <li>不支持 <code>ALGORITHM=INPLACE</code> 和 invisible vector index。</li>
+          <li>NULL 向量不入索引。</li>
+          <li>HNSW 是近似搜索，召回率依赖 <code>M</code>、<code>ef_search</code>。</li>
+          <li>HNSW 建图存在随机性，主备图结构不保证逐字节相同。</li>
+          <li>DML 需要维护 HNSW 图，写入放大明显。</li>
+        </ul>
+      </section>
+
+      <section id="flashback">
+        <h2>3. Native Flashback</h2>
+
+        <h3>3.1 部署形态</h3>
+        <pre><code class="language-ini">[mysqld]
+innodb_rds_flashback_task_enabled=ON
+innodb_undo_retention=3600
+innodb_rds_flashback_interval=1</code></pre>
+
+        <pre><code class="language-sql">SELECT id, status
+FROM orders AS OF TIMESTAMP DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+WHERE customer_id = 1001;</code></pre>
+
+        <p>RDS 官方说明：Native Flashback 使用 <code>AS OF TIMESTAMP</code> 查询历史版本，消耗额外 Undo 表空间，不保证结果与指定时间点完全匹配。</p>
+
+        <h3>3.2 源码架构图</h3>
+        <div class="mermaid">
+flowchart TB
+  SQL[SELECT ... AS OF TIMESTAMP] --> Parser[Parser]
+  Parser --> SnapshotExpr[Snapshot Expression]
+  SnapshotExpr --> TableSnapshot[TABLE.snapshot]
+
+  Background[Flashback Background Thread] --> SnapshotTable[mysql.innodb_flashback_snapshot]
+  Background --> Undo[Retained Undo]
+
+  TableSnapshot --> FlashbackMgr[Flashback_manager_v2]
+  FlashbackMgr --> SnapshotTable
+  FlashbackMgr --> ReadView[Recovered ReadView]
+
+  ReadView --> RowSearch[row_search_mvcc]
+  RowSearch --> Undo
+  RowSearch --> HistoricalRows[历史可见行版本]
+        </div>
+
+        <h3>3.3 关键数据结构</h3>
+        <div class="mermaid">
+classDiagram
+  class Snapshot_info_t {
+    +timestamp
+    +valid()
+    +ptr
+  }
+
+  class FlashbackSnapshotTable {
+    +scn
+    +utc
+    +limit_no
+    +memo
+  }
+
+  class ReadView {
+    +m_low_limit_id
+    +m_up_limit_id
+    +m_low_limit_no
+    +m_ids
+    +m_flashback_flag
+    +m_utc
+  }
+
+  class Flashback_manager_v2 {
+    +get_readview()
+    +add_view()
+    +release_view()
+    -readviewList
+  }
+
+  class ReadView_guard {
+    +bind_snapshot()
+    +restore_readview()
+  }
+
+  Snapshot_info_t --> Flashback_manager_v2
+  Flashback_manager_v2 --> FlashbackSnapshotTable
+  Flashback_manager_v2 --> ReadView
+  ReadView_guard --> ReadView
+        </div>
+
+        <h3>3.4 快照生成流程图</h3>
+        <div class="mermaid">
+flowchart TD
+  A[后台线程定时唤醒] --> B{task_enabled=ON 且 undo_retention>0?}
+  B -- 否 --> C[只做清理或等待]
+  B -- 是 --> D[打开当前 InnoDB ReadView]
+  D --> E[序列化 ReadView]
+  E --> F[写入 mysql.innodb_flashback_snapshot]
+  F --> G[记录 scn / utc / limit_no / memo]
+  G --> H[根据 undo retention 和空间阈值清理旧快照]
+        </div>
+
+        <h3>3.5 AS OF 查询时序图</h3>
+        <div class="mermaid">
+sequenceDiagram
+  participant Client
+  participant SQL as SQL Layer
+  participant Table as TABLE.snapshot
+  participant FB as Flashback_manager_v2
+  participant Snap as innodb_flashback_snapshot
+  participant InnoDB
+  participant Undo
+
+  Client->>SQL: SELECT ... AS OF TIMESTAMP T
+  SQL->>SQL: 校验表达式常量、时间类型
+  SQL->>Table: 保存 timestamp
+  SQL->>FB: get_readview(T)
+  FB->>Snap: 查找 utc >= T 的最近快照
+  Snap-->>FB: 返回 memo / limit_no
+  FB->>FB: 反序列化 ReadView
+  FB->>InnoDB: 绑定历史 ReadView
+  InnoDB->>Undo: 沿 Undo 链查历史版本
+  Undo-->>InnoDB: 返回可见行
+  InnoDB-->>Client: 返回结果
+        </div>
+
+        <h3>3.6 约束与缺陷</h3>
+        <ul>
+          <li>只支持 InnoDB 基表 SELECT。</li>
+          <li>不支持临时表、视图、锁定读。</li>
+          <li>不支持任意跨 DDL 历史查询。</li>
+          <li>查询时间与实际快照时间可能有偏差。</li>
+          <li>Undo 空间不足会缩短可查询窗口。</li>
+          <li>不能替代备份、Binlog 和容灾。</li>
+        </ul>
+      </section>
+
+      <section id="binlog-redo">
+        <h2>4. Persist Binlog Into Redo</h2>
+
+        <h3>4.1 部署形态</h3>
+        <pre><code class="language-ini">[mysqld]
+sync_binlog=1
+innodb_flush_log_at_trx_commit=1
+binlog_order_commits=OFF
+replica_preserve_commit_order=OFF
+persist_binlog_to_redo=ON</code></pre>
+
+        <p>RDS 官方说明：Binlog in Redo 将事务 Binlog 内容同步写入 Redo Log，减少磁盘同步 I/O 次数；Binlog 文件格式不变，复制和第三方工具不受影响。</p>
+
+        <h3>4.2 源码架构图</h3>
+        <div class="mermaid">
+flowchart TB
+  Commit[事务提交] --> OrderedCommit[MYSQL_BIN_LOG::ordered_commit]
+  OrderedCommit --> Check{should_persist_to_redo?}
+
+  Check -- 否 --> NormalBGC[普通 Binlog Group Commit]
+  Check -- 是 --> BinlogExt[Binlog_ext::commit]
+
+  BinlogExt --> Group[Binlog_group_committer]
+  Group --> AsyncBuffer[Async_writer Ring Buffer]
+  AsyncBuffer --> Redo[InnoDB Redo: MLOG_SERVER_DATA]
+  Redo --> EngineCommit[ha_commit_low]
+
+  AsyncBuffer --> FlushThread[binlog_flush_thread]
+  FlushThread --> BinlogFile[Binlog File]
+
+  BinlogFile --> SyncThread[binlog_sync_thread]
+  SyncThread --> Disk[fsync]
+
+  Redo --> Recovery[Binlog_redo_recovery]
+  Recovery --> BinlogFile
+        </div>
+
+        <h3>4.3 关键数据结构</h3>
+        <div class="mermaid">
+classDiagram
+  class Binlog_ext {
+    +should_persist_to_redo()
+    +commit()
+    +duckdb_commit()
+    +init()
+    +cleanup()
+  }
+
+  class Binlog_group_committer {
+    +enroll_for()
+    +leaderFollowerGroup()
+  }
+
+  class Async_writer {
+    +allocate_buffer()
+    +write_to_redo()
+    +wait_for_flush()
+    +run_flush()
+    +run_sync()
+    -ringBuffer
+    -writeStates
+  }
+
+  class RedoRecord {
+    +type
+    +file_num
+    +file_pos
+    +file_data
+  }
+
+  class Binlog_redo_recovery {
+    +recovery_begin()
+    +apply()
+    +recovery_end()
+  }
+
+  Binlog_ext --> Binlog_group_committer
+  Binlog_ext --> Async_writer
+  Async_writer --> RedoRecord
+  RedoRecord --> Binlog_redo_recovery
+        </div>
+
+        <h3>4.4 提交流程图</h3>
+        <div class="mermaid">
+flowchart TD
+  A[事务进入 ordered_commit] --> B{sync_binlog=1?}
+  B -- 否 --> N[普通 Group Commit]
+  B -- 是 --> C{persist_binlog_to_redo=ON?}
+  C -- 否 --> N
+  C -- 是 --> D{是否要求提交顺序?}
+  D -- 是 --> N
+  D -- 否 --> E{事务是否符合大小/类型限制?}
+  E -- 否 --> N
+  E -- 是 --> F[分配 Binlog 位置]
+  F --> G[写入异步 Binlog Buffer]
+  G --> H[写 Binlog Event 到 Redo]
+  H --> I[等待 Redo flush]
+  I --> J[提交 InnoDB 事务]
+  J --> K{wait_binlog_flush=ON?}
+  K -- 是 --> L[等待后台写入 Binlog 文件]
+  K -- 否 --> M[直接返回]
+  L --> M
+        </div>
+
+        <h3>4.5 后台写入时序图</h3>
+        <div class="mermaid">
+sequenceDiagram
+  participant Commit as Commit Thread
+  participant Buffer as Async Ring Buffer
+  participant Redo as InnoDB Redo
+  participant Flush as binlog_flush_thread
+  participant Sync as binlog_sync_thread
+  participant File as Binlog File
+
+  Commit->>Buffer: 写 Binlog Event
+  Commit->>Redo: 写 Binlog Event 到 Redo
+  Commit->>Redo: 等待 Redo flush
+  Redo-->>Commit: Redo 已持久化
+  Commit-->>Commit: InnoDB commit
+
+  Flush->>Buffer: 读取待写 Binlog
+  Flush->>File: append Binlog
+  Sync->>File: 周期性 fsync
+        </div>
+
+        <h3>4.6 崩溃恢复流程图</h3>
+        <div class="mermaid">
+flowchart TD
+  A[mysqld 重启] --> B[InnoDB Redo Recovery]
+  B --> C[解析 MLOG_SERVER_DATA]
+  C --> D{是否是 Binlog Redo Record?}
+  D -- 否 --> E[普通 Redo 应用]
+  D -- 是 --> F[Binlog_redo_recovery::apply]
+  F --> G{Binlog 文件尾部是否缺失?}
+  G -- 否 --> H[跳过]
+  G -- 是 --> I[从 Redo 补齐 Binlog 尾部]
+  I --> J[修正 end_log_pos]
+  J --> K[继续正常 Binlog Recovery]
+        </div>
+
+        <h3>4.7 约束与缺陷</h3>
+        <ul>
+          <li>并非所有事务都会走优化路径。</li>
+          <li>大事务、非事务表、statement cache、提交顺序要求都会回退。</li>
+          <li>后台化不是消除 I/O，而是转移前台等待。</li>
+          <li>Redo 压力、Binlog flush 延迟、buffer 大小需要监控。</li>
+          <li>需要重点验证 crash recovery 和复制一致性。</li>
+        </ul>
+      </section>
+
+      <section id="free-flush">
+        <h2>5. Binlog Cache Free Flush</h2>
+
+        <h3>5.1 部署形态</h3>
+        <pre><code class="language-sql">SET GLOBAL binlog_cache_free_flush_limit_size = 268435456;
+SET GLOBAL binlog_cache_free_flush = ON;</code></pre>
+
+        <p>RDS 官方文档说明：新建实例默认开启，存量实例通过 <code>loose_binlog_cache_free_flush</code> 开启；默认阈值 256 MB。</p>
+
+        <h3>5.2 普通大事务提交问题</h3>
+        <div class="mermaid">
+flowchart TD
+  A[大事务执行] --> B[Binlog Cache 超过内存阈值]
+  B --> C[写入临时文件]
+  C --> D[COMMIT]
+  D --> E[持有 LOCK_log]
+  E --> F[从临时文件逐 Event 复制到正式 Binlog]
+  F --> G[更新 end_pos / checksum]
+  G --> H[fsync / rotate]
+  H --> I[释放 LOCK_log]
+
+  E --> J[其他小事务等待提交]
+        </div>
+
+        <h3>5.3 Free Flush 架构图</h3>
+        <div class="mermaid">
+flowchart TB
+  Trx[大事务] --> Cache[Binlog Cache Temp File]
+  Cache --> Reserved[文件头预留空间]
+  Cache --> Events[事务 Binlog Events]
+
+  Commit[COMMIT] --> Check[Binlog_cache_free_flush::check]
+  Check --> FillHeader[补齐 File Header / FDE / Previous GTID / GTID / Empty Event]
+  FillHeader --> Rename[rename temp file 为正式 Binlog]
+  Rename --> Rotate[打开下一个 Binlog]
+  Rotate --> Done[提交完成]
+
+  Check -- 不满足 --> Normal[普通 Group Commit]
+        </div>
+
+        <h3>5.4 关键数据结构</h3>
+        <div class="mermaid">
+classDiagram
+  class Binlog_cache_free_flush {
+    +check()
+    +commit()
+    +rename_temp_to_binlog()
+    +init_binlog_cache_dir()
+    -enabled
+    -limit_size
+  }
+
+  class RDS_binlog_cache_storage {
+    +reserve_header_space()
+    +get_file_reserved_size()
+    +detach_file()
+    +rename()
+  }
+
+  class BinlogCacheTempFile {
+    +reservedHeaderArea
+    +binlogEvents
+    +xidEvent
+  }
+
+  class MYSQL_BIN_LOG {
+    +LOCK_log
+    +rotate()
+    +flush_and_sync()
+  }
+
+  Binlog_cache_free_flush --> RDS_binlog_cache_storage
+  RDS_binlog_cache_storage --> BinlogCacheTempFile
+  Binlog_cache_free_flush --> MYSQL_BIN_LOG
+        </div>
+
+        <h3>5.5 准入流程图</h3>
+        <div class="mermaid">
+flowchart TD
+  A[事务提交] --> B{binlog_cache_free_flush=ON?}
+  B -- 否 --> N[普通 Group Commit]
+  B -- 是 --> C{Binlog Cache > limit_size?}
+  C -- 否 --> N
+  C -- 是 --> D{Cache 已落盘到临时文件?}
+  D -- 否 --> N
+  D -- 是 --> E{Statement Cache 为空?}
+  E -- 否 --> N
+  E -- 是 --> F{Cache finalized 且无 incident?}
+  F -- 否 --> N
+  F -- 是 --> G{Binlog / Cache 未加密?}
+  G -- 否 --> N
+  G -- 是 --> H{未修改 mysql.gtid_executed?}
+  H -- 否 --> N
+  H -- 是 --> I{只有 Binlog + 一个非 Binlog 2PC 引擎?}
+  I -- 否 --> N
+  I -- 是 --> J[执行 Free Flush]
+        </div>
+
+        <h3>5.6 Free Flush 提交时序图</h3>
+        <div class="mermaid">
+sequenceDiagram
+  participant Trx as Commit Thread
+  participant Cache as Binlog Cache Temp File
+  participant BFF as Binlog_cache_free_flush
+  participant Binlog as MYSQL_BIN_LOG
+  participant FS as File System
+
+  Trx->>BFF: check(thd)
+  BFF->>Cache: 检查大小、落盘、预留空间、状态
+  BFF->>Binlog: 获取 LOCK_log
+  BFF->>Cache: 写入 Binlog File Header / GTID / Empty Event
+  BFF->>FS: rename temp file -> binlog.XXXXXX
+  BFF->>Binlog: rotate 打开下一个 Binlog
+  BFF-->>Trx: 提交完成
+        </div>
+
+        <h3>5.7 DuckDB 交互差异</h3>
+        <div class="warning">
+          当前源码中，<code>Binlog_cache_free_flush::check()</code> 会检查 2PC 参与者数量。
+          DuckDB 在开启 binlog 时注册 <code>prepare</code>，会导致多一个非 binlog 2PC 引擎。
+          因此包含 DuckDB 的构建通常会让 Free Flush 回退普通 Group Commit。
+        </div>
+
+        <div class="mermaid">
+flowchart TD
+  A[AliSQL 构建包含 DuckDB 且开启 binlog] --> B[DuckDB handlerton 注册 prepare]
+  B --> C[total_ha_2pc 增加]
+  C --> D{total_ha_2pc > opt_bin_log + 1?}
+  D -- 是 --> E[Free Flush 回退普通 Group Commit]
+  D -- 否 --> F[继续检查其他条件]
+        </div>
+      </section>
+
+      <section id="combined">
+        <h2>6. 五个特性的组合关系</h2>
+        <div class="mermaid">
+flowchart TB
+  Commit[事务提交入口 ordered_commit] --> Duck{DuckDB mode ON?}
+  Duck -- 是 --> DuckCommit[DuckDB 专用 commit 路径]
+  Duck -- 否 --> FreeFlush{Free Flush 准入?}
+
+  FreeFlush -- 是 --> BFF[Binlog Cache Free Flush]
+  FreeFlush -- 否 --> Redo{Binlog in Redo 准入?}
+
+  Redo -- 是 --> BIR[Persist Binlog Into Redo]
+  Redo -- 否 --> BGC[普通 Binlog Group Commit]
+
+  Query[SQL 查询入口] --> IsDuck{DuckDB 表?}
+  IsDuck -- 是 --> DuckQuery[整条 SQL 下推 DuckDB]
+  IsDuck -- 否 --> IsVector{ORDER BY VEC_DISTANCE LIMIT?}
+  IsVector -- 是 --> VIDX[VIDX HNSW ANN]
+  IsVector -- 否 --> InnoDB[普通 InnoDB 执行]
+
+  Flashback[AS OF TIMESTAMP] --> ReadView[历史 ReadView]
+  ReadView --> InnoDBMVCC[InnoDB MVCC + Undo]
+        </div>
+      </section>
+
+      <section id="risks">
+        <h2>7. 重点风险与验证建议</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>特性</th>
+              <th>重点风险</th>
+              <th>建议验证</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>DuckDB</td>
+              <td>SQL 兼容、DDL 行为、复制延迟、资源竞争、2PC 交互。</td>
+              <td>用业务 SQL 回放；压测 Row Binlog 同步；验证故障恢复。</td>
+            </tr>
+            <tr>
+              <td>VIDX</td>
+              <td>ANN 召回率、写放大、缓存大小、RC 隔离要求。</td>
+              <td>用真实向量数据测试召回/延迟；监控辅助表和缓存。</td>
+            </tr>
+            <tr>
+              <td>Native Flashback</td>
+              <td>Undo 空间、Purge 压力、跨 DDL 不可读、快照偏差。</td>
+              <td>按目标保留窗口压测 Undo；演练误操作恢复流程。</td>
+            </tr>
+            <tr>
+              <td>Binlog in Redo</td>
+              <td>崩溃恢复、Redo 压力、后台 Binlog flush 延迟。</td>
+              <td>做 crash injection；验证复制位点和 Binlog 完整性。</td>
+            </tr>
+            <tr>
+              <td>Free Flush</td>
+              <td>多 2PC 引擎回退、加密回退、rename 崩溃窗口。</td>
+              <td>构造大事务压测；验证 DuckDB 构建中的实际准入；做重启恢复测试。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="success">
+          总体判断：AliSQL 8.0.44-2 同时改动 SQL Parser、Optimizer、Handler、InnoDB MVCC/Undo、
+          Binlog Group Commit、Redo Recovery、复制 Apply 与存储引擎插件体系。最需要关注的是 DuckDB
+          与 Binlog/2PC 的组合、Binlog in Redo 的崩溃恢复、VIDX 的 HNSW 一致性维护，以及 Flashback
+          对 Undo/Purge 的长期影响。
+        </div>
+      </section>
+
+      <section id="sources">
+        <h2>8. 资料来源</h2>
+        <ul class="source-list">
+          <li>微信文章：《AliSQL 重磅开源版本发布》。</li>
+          <li>AliSQL GitHub：<code>https://github.com/alibaba/AliSQL/tree/AliSQL-8.0.44-2</code>。</li>
+          <li>AliSQL README / README_zh：8.0.44-2 核心特性、快速开始、文档索引。</li>
+          <li>AliSQL wiki：DuckDB、VIDX、Native Flashback、Binlog in Redo、Binlog Cache Free Flush 指南。</li>
+          <li>阿里云 RDS DuckDB 分析实例官方文档。</li>
+          <li>阿里云 RDS MySQL 向量存储官方文档。</li>
+          <li>阿里云 RDS Native Flashback 官方文档。</li>
+          <li>阿里云 RDS Binlog in Redo 官方文档。</li>
+          <li>阿里云 RDS Binlog Cache Free Flush 官方文档。</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
