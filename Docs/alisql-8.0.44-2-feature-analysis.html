@@ -64,6 +64,21 @@
       padding: 28px;
     }
 
+    main > div {
+      min-width: 0;
+      overflow: visible;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 24px rgb(15 23 42 / 8%);
+      overflow: visible;
+    }
+
     nav {
       position: sticky;
       top: 20px;
@@ -91,15 +106,6 @@
 
     nav a:hover { color: var(--brand); }
 
-    section {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 28px;
-      margin-bottom: 24px;
-      box-shadow: 0 6px 24px rgb(15 23 42 / 8%);
-    }
-
     h2 {
       margin: 0 0 18px;
       color: var(--brand-2);
@@ -125,8 +131,46 @@
       border-collapse: collapse;
       margin: 14px 0 24px;
       background: white;
-      overflow: hidden;
       border-radius: 10px;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      margin: 14px 0 24px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: white;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table-scroll table {
+      margin: 0;
+      border-radius: 0;
+      min-width: 680px;
+    }
+
+    table.perf-summary td ul {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+
+    table.perf-summary td ul li {
+      margin-bottom: 0.4em;
+    }
+
+    table.perf-summary td ul li:last-child {
+      margin-bottom: 0;
+    }
+
+    table.perf-summary td {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      line-height: 1.65;
+    }
+
+    table.perf-summary td:first-child {
+      width: 108px;
+      min-width: 96px;
     }
 
     th, td {
@@ -230,10 +274,23 @@
     .source-note {
       font-size: 13px;
       color: var(--muted);
-      margin: 8px 0 18px;
+      margin: 0 0 24px;
     }
 
     table.perf-summary th { white-space: nowrap; }
+
+    h3 + .table-scroll {
+      margin-top: 8px;
+    }
+
+    .source-note + h3,
+    .table-scroll + .source-note + h3 {
+      margin-top: 28px;
+    }
+
+    h3 + .feature-visual {
+      margin-top: 12px;
+    }
 
     .feature-visual .accent3 { fill: #fef3c7; stroke: #f59e0b; stroke-width: 1.5; }
     .feature-visual .dark { fill: #0f766e; }
@@ -399,8 +456,11 @@ duckdb_temp_directory=/path/to/duckdb-tmp</code></pre>
 
 SELECT region, SUM(amount)
 FROM sales
-<h3>1.2 使用方式、效果与性能</h3>
+GROUP BY region;</code></pre>
 
+        <h3>1.2 使用方式、效果与性能</h3>
+
+        <div class="table-scroll">
         <table class="perf-summary">
           <thead>
             <tr>
@@ -457,9 +517,8 @@ FROM sales
             </tr>
           </tbody>
         </table>
+        </div>
         <p class="source-note">来源：阿里云 RDS <a href="https://help.aliyun.com/zh/rds/apsaradb-rds-for-mysql/duckdb-analysis-instance">DuckDB 分析实例</a>；AliSQL Wiki <a href="https://github.com/alibaba/AliSQL/blob/AliSQL-8.0.44-2/wiki/duckdb/duckdb-zh.md">duckdb-zh.md</a>。</p>
-
-GROUP BY region;</code></pre>
 
 <h3>1.3 DuckDB 整体特性图</h3><div class="feature-visual"><svg viewBox="0 0 1120 350" role="img" aria-label="DuckDB：在 MySQL 入口内获得列式分析能力">
       <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0f766e"/></marker><marker id="grayArrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
@@ -531,8 +590,11 @@ SELECT id,
        VEC_DISTANCE_COSINE(embedding, VEC_FROMTEXT('[0.1,0.2,0.3]')) AS distance
 FROM documents
 ORDER BY distance
-<h3>2.2 使用方式、效果与性能</h3>
+LIMIT 10;</code></pre>
 
+        <h3>2.2 使用方式、效果与性能</h3>
+
+        <div class="table-scroll">
         <table class="perf-summary">
           <thead>
             <tr>
@@ -589,9 +651,8 @@ ORDER BY distance
             </tr>
           </tbody>
         </table>
+        </div>
         <p class="source-note">来源：阿里云 RDS <a href="https://help.aliyun.com/zh/rds/apsaradb-rds-for-mysql/vector-storage-1">向量存储</a>；AliSQL Wiki <a href="https://github.com/alibaba/AliSQL/blob/AliSQL-8.0.44-2/wiki/vidx/vidx_readme_zh.md">vidx_readme_zh.md</a>。</p>
-
-LIMIT 10;</code></pre>
 
 <h3>2.3 VIDX 整体特性图</h3><div class="feature-visual"><svg viewBox="0 0 1120 350" role="img" aria-label="VIDX：业务数据与向量检索在同一张 InnoDB 表内闭环">
       <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0f766e"/></marker><marker id="grayArrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
@@ -659,6 +720,7 @@ WHERE customer_id = 1001;</code></pre>
 
         <h3>3.2 使用方式、效果与性能</h3>
 
+        <div class="table-scroll">
         <table class="perf-summary">
           <thead>
             <tr>
@@ -714,6 +776,7 @@ WHERE customer_id = 1001;</code></pre>
             </tr>
           </tbody>
         </table>
+        </div>
         <p class="source-note">来源：阿里云 RDS <a href="https://help.aliyun.com/zh/rds/apsaradb-rds-for-mysql/native-flashback">Native Flashback</a>；AliSQL Wiki <a href="https://github.com/alibaba/AliSQL/blob/AliSQL-8.0.44-2/wiki/native-flashback/native-flashback-zh.md">native-flashback-zh.md</a>。</p>
 
 <h3>3.3 Native Flashback 整体特性图</h3><div class="feature-visual"><svg viewBox="0 0 1120 350" role="img" aria-label="Native Flashback：以 Undo 历史版本直接回答“过去某时刻的数据”">
@@ -776,6 +839,7 @@ persist_binlog_to_redo=ON</code></pre>
 
         <h3>4.2 使用方式、效果与性能</h3>
 
+        <div class="table-scroll">
         <table class="perf-summary">
           <thead>
             <tr>
@@ -837,6 +901,7 @@ persist_binlog_to_redo=ON</code></pre>
             </tr>
           </tbody>
         </table>
+        </div>
         <p class="source-note">来源：阿里云 RDS <a href="https://help.aliyun.com/zh/rds/apsaradb-rds-for-mysql/binlog-in-redo">Binlog in Redo</a>；AliSQL Wiki <a href="https://github.com/alibaba/AliSQL/blob/AliSQL-8.0.44-2/wiki/binlog-in-redo/binlog-in-redo-zh.md">binlog-in-redo-zh.md</a>。</p>
 
 <h3>4.3 Binlog in Redo 整体特性图</h3><div class="feature-visual"><svg viewBox="0 0 1120 350" role="img" aria-label="Persist Binlog Into Redo：将 Binlog 内容纳入 Redo 持久化边界">
@@ -897,6 +962,7 @@ SET GLOBAL binlog_cache_free_flush = ON;</code></pre>
 
         <h3>5.2 使用方式、效果与性能</h3>
 
+        <div class="table-scroll">
         <table class="perf-summary">
           <thead>
             <tr>
@@ -957,6 +1023,7 @@ SET GLOBAL binlog_cache_free_flush = ON;</code></pre>
             </tr>
           </tbody>
         </table>
+        </div>
         <p class="source-note">来源：阿里云 RDS <a href="https://help.aliyun.com/zh/rds/apsaradb-rds-for-mysql/binlog-cache-free-flush">Binlog Cache Free Flush</a>；AliSQL Wiki <a href="https://github.com/alibaba/AliSQL/blob/AliSQL-8.0.44-2/wiki/binlog-cache-free-flush/binlog-cache-free-flush-zh.md">binlog-cache-free-flush-zh.md</a>。</p>
 
 <h3>5.3 Free Flush 整体特性图</h3><div class="feature-visual"><svg viewBox="0 0 1120 350" role="img" aria-label="Binlog Cache Free Flush：大事务临时文件直接成为正式 Binlog">
