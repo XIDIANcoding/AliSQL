@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram id="oracle-arch" name="Oracle 26ai Autonomous AI Lakehouse">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Top Layer: Select AI Agent -->
+        <mxCell id="layer1" value="1. 智能交互与 Agent 编排层 (Select AI &amp; Select AI Agent Framework)" style="swimlane;startSize=28;fillColor=#e1f5fe;strokeColor=#0288d1;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="40" width="1020" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_react" value="ReAct 自主思考循环&#xa;(Planning 规划 -&gt; Reflection 反思)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;" vertex="1" parent="layer1">
+          <mxGeometry x="30" y="45" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_nl2sql" value="Select AI (NL2SQL)&#xa;自然语言转高精度 SQL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;" vertex="1" parent="layer1">
+          <mxGeometry x="280" y="45" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_tools" value="In-DB Tool Calling &amp; MCP&#xa;PL/SQL 存储过程 / REST / MCP 端点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;" vertex="1" parent="layer1">
+          <mxGeometry x="520" y="45" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_mem" value="长短期记忆与审计日志&#xa;USER_CLOUD_AI_CONVERSATION" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;" vertex="1" parent="layer1">
+          <mxGeometry x="780" y="45" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Middle Layer: Converged Engine -->
+        <mxCell id="layer2" value="2. 统一多模 SQL 计算引擎层 (Oracle AI Database 26ai Converged Engine)" style="swimlane;startSize=28;fillColor=#ede7f6;strokeColor=#512da8;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="1020" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_tp" value="OLTP 事务引擎&#xa;ACID 强一致 / 行存 / 锁管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#512da8;fontSize=11;" vertex="1" parent="layer2">
+          <mxGeometry x="30" y="45" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_ap" value="Database In-Memory (AP)&#xa;双格式内存列存 / SIMD 向量化加速" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#512da8;fontSize=11;" vertex="1" parent="layer2">
+          <mxGeometry x="280" y="45" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_vec" value="AI Vector Search &amp; ONNX&#xa;VECTOR 原生类型 / 库内模型推理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#512da8;fontSize=11;" vertex="1" parent="layer2">
+          <mxGeometry x="530" y="45" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_multi" value="JSON Duality &amp; Graph&#xa;属性图分析 / 关系与文档双向映射" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#512da8;fontSize=11;" vertex="1" parent="layer2">
+          <mxGeometry x="780" y="45" width="210" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Bottom Layer: Storage & Lakehouse -->
+        <mxCell id="layer3" value="3. 智能存储与开放湖仓加速层 (Exadata AI Storage &amp; Autonomous Lakehouse)" style="swimlane;startSize=28;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="390" width="1020" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_smart" value="Exadata Smart Scan&#xa;向量距离计算与谓词存储层硬件下推" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;" vertex="1" parent="layer3">
+          <mxGeometry x="30" y="45" width="300" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_cache" value="True Cache &amp; Exascale&#xa;事务一致性中层缓存 / 闪存高速加速" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;" vertex="1" parent="layer3">
+          <mxGeometry x="360" y="45" width="300" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_lake" value="Autonomous AI Catalog&#xa;原位直读 Apache Iceberg / Delta Sharing&#xa;(零数据搬迁 / 跨云互通)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;" vertex="1" parent="layer3">
+          <mxGeometry x="690" y="45" width="300" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" value="SQL 执行 / 库内 AI 调用" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#0288d1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="layer1" target="layer2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="算子下推 Smart Scan / 湖仓统一原位查询" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#512da8;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="layer2" target="layer3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

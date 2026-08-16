@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram id="snowflake-arch" name="Snowflake Cortex AI and Horizon Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Layer 1: Agent & Orchestration -->
+        <mxCell id="l1" value="1. Cortex Agents 编排与双驱动工具层" style="swimlane;startSize=28;fillColor=#e1f5fe;strokeColor=#0288d1;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="40" width="1020" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_agent" value="Cortex Agent (智能路由)&#xa;Auto-Routing 意图分类 / MCP 端点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="l1">
+          <mxGeometry x="30" y="45" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_analyst" value="工具 A: Cortex Analyst&#xa;结构化数据 Text-to-SQL&#xa;绑定 Horizon 语义视图 (准确率 &gt;90%)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;" vertex="1" parent="l1">
+          <mxGeometry x="290" y="45" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="l1_search" value="工具 B: Cortex Search &amp; Analytical Search&#xa;Layer 1: 自适应深度候选集剪枝&#xa;Layer 2: AI_FILTER / AI_EXTRACT / AI_AGG 库内算子" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;" vertex="1" parent="l1">
+          <mxGeometry x="640" y="45" width="350" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 2: Horizon Catalog -->
+        <mxCell id="l2" value="2. 统一治理控制面 (Snowflake Horizon Catalog / Apache Polaris)" style="swimlane;startSize=28;fillColor=#ede7f6;strokeColor=#512da8;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="1020" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_sem" value="Semantic Views (语义即代码)&#xa;指标公式 / 维度关系 / 同义词声明" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#512da8;fontSize=11;" vertex="1" parent="l2">
+          <mxGeometry x="30" y="45" width="290" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_sec" value="Policy Decision Point (PDP)&#xa;动态脱敏 / 行访问策略 / 统一 RBAC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#512da8;fontSize=11;" vertex="1" parent="l2">
+          <mxGeometry x="360" y="45" width="290" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l2_guard" value="Cortex AI Guardrails&#xa;PII 敏感数据拦截 / Agent 运行时审计" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#512da8;fontSize=11;" vertex="1" parent="l2">
+          <mxGeometry x="690" y="45" width="300" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 3: Elastic Compute & Storage -->
+        <mxCell id="l3" value="3. 弹性计算与统一存储层 (Snowflake Managed Tables &amp; Apache Iceberg)" style="swimlane;startSize=28;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="1020" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_wh" value="虚拟仓库 (Virtual Warehouses)&#xa;隔离的弹性计算资源 / 无锁多读多写" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;" vertex="1" parent="l3">
+          <mxGeometry x="30" y="45" width="450" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l3_ice" value="双向开放存储 (Open Iceberg REST Catalog)&#xa;内部微分区表 + S3/Azure 开放 Iceberg 外部表 (零搬迁)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;" vertex="1" parent="l3">
+          <mxGeometry x="520" y="45" width="470" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="se1" value="语义查询与权限判定" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#0288d1;" edge="1" parent="1" source="l1" target="l2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="se2" value="安全下发计算与扫描" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#512da8;" edge="1" parent="1" source="l2" target="l3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
