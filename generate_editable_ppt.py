@@ -452,19 +452,79 @@ def build():
     add_footer(slide, page, "建议基于官方实现对比")
     page += 1
 
-    slide = new_slide(prs, "建议的产品演进路线", "先内核确定性能力，再 AI 服务，再 Agent 与开放湖", "建议")
+    slide = new_slide(prs, "一键生成知识图谱：端到端产品流程",
+                      "“一键”是自动化工作流，不取消本体与实体冲突审核", "知识图谱")
     stages = [
-        ("阶段 1\nHTAP 内核", "列存格式/索引\n向量化执行器\nCBO 自动行列选择\nTP/AP 资源隔离", BLUE),
-        ("阶段 2\n搜索与 AI", "VECTOR + ANN\n全文 + 向量混合\nAI Node / Serverless\nSQL 统一入口", CYAN),
-        ("阶段 3\n语义与 Agent", "Semantic View\nNL2SQL / Agent Runtime\nMCP / Tool Governance\nTracing / Evaluation", ORANGE),
-        ("阶段 4\n开放湖库", "Iceberg Catalog\nParquet Reader\n原位查询与下推\n再评估一致写", GREEN),
+        ("1 数据接入", "表/文档发现\n一致性快照\nLSN 水位", BLUE),
+        ("2 本体生成", "实体/关系/属性\n业务术语\n人工审核", GREEN),
+        ("3 实体关系抽取", "SQL 确定性抽取\nNER/RE\n证据片段", ORANGE),
+        ("4 实体消歧", "主键/规则\n向量相似\n邻居匹配", CYAN),
+        ("5 图谱持久化", "实体/边/属性\n时态版本\n来源血缘", BLUE),
+        ("6 增量维护", "Redo/CDC\n删除传播\n模型重算", CYAN),
+        ("7 服务发布", "图查询\nGraphRAG\nSQL/REST/MCP", GREEN),
     ]
-    x = 0.5
+    x, y = 0.35, 1.45
     for idx, (title, body, color) in enumerate(stages):
-        add_box(slide, x, 1.55, 2.8, 3.7, title, body, "FFFFFF", color, 19, 15)
+        add_box(slide, x, y, 1.65, 3.5, title, body, "FFFFFF", color, 13.5, 11.5)
         if idx < len(stages) - 1:
-            add_arrow(slide, x + 2.82, 3.35, x + 3.08, 3.35, SLATE, 2)
-        x += 3.18
+            add_arrow(slide, x + 1.67, y + 1.75, x + 1.82, y + 1.75, SLATE, 1.6)
+        x += 1.82
+    add_text(slide, 0.65, 5.35, 12.0, 0.55,
+             "结构化关系优先用 SQL/Join 确定性生成；LLM 只补充文档中的非结构化实体和关系。",
+             16, NAVY, True, PP_ALIGN.CENTER)
+    add_text(slide, 0.65, 6.05, 12.0, 0.55,
+             "每个实体和关系必须保留 source_pk、source_lsn、ontology/model 版本、confidence 与 evidence。",
+             14, ORANGE, True, PP_ALIGN.CENTER)
+    add_footer(slide, page, "建议架构；GraphRAG 参考：[D9]")
+    page += 1
+
+    slide = new_slide(prs, "一键知识图谱：技术能力与工程落点", section="知识图谱")
+    headers = ["技术域", "必须能力", "产品组件", "工程落点"]
+    rows = [
+        ["一致性基础", "Snapshot、Redo/CDC、水位、Schema 演进、删除传播", "Graph Snapshot / Change Feed", "TP 内核 + 复制层"],
+        ["本体语义", "实体/关系/属性约束、版本、审批、兼容迁移", "Ontology Studio", "管控面"],
+        ["结构化抽取", "PK/FK 发现、SQL/Join、规则、时态关系", "Deterministic Graph Builder", "AP 节点"],
+        ["非结构化抽取", "OCR、Parser、Chunk、NER、关系抽取、证据定位", "Document Intelligence Worker", "AI Worker"],
+        ["实体解析", "规范化、规则、向量、图邻居匹配、人工审核", "Entity Resolution Service", "AP + AI 服务"],
+        ["图查询", "实体/边、图索引、多跳、时态图、社区与中心性", "Graph Tables / Property Graph", "数据库/AP"],
+        ["混合召回", "关系、全文、向量、图邻居、Rerank", "GraphRAG Retriever", "数据库 + AI Search"],
+        ["治理质量", "RLS、血缘、置信度、模型/Prompt 版本、评测", "Graph Quality Center", "内核安全 + 管控面"],
+    ]
+    add_table(slide, 0.42, 1.22, 12.5, 5.78, headers, rows,
+              [1.5, 4.15, 3.65, 3.2], 8.9)
+    add_footer(slide, page)
+    page += 1
+
+    slide = new_slide(prs, "这套架构可以对外提供什么解决方案", section="解决方案")
+    headers = ["解决方案", "核心产品组合", "目标行业", "客户价值"]
+    rows = [
+        ["实时经营分析助手", "TP + AP + 自动同步 + Semantic View + ChatBI", "零售、制造、物流、SaaS", "最新业务数据直接分析，减少 T+1 数仓和人工报表"],
+        ["企业知识与业务问答", "业务表 + 文档 + AI Index + 混合检索 + RAG", "金融、政企、运营商、制造", "制度知识与实时业务状态统一回答"],
+        ["供应链知识图谱", "ERP 表 + 合同/质检文档 + 消歧 + GraphRAG", "制造、汽车、零售", "供应商穿透、替代关系、质量和交付风险"],
+        ["客户 360 与智能营销", "客户/订单/行为图谱 + 实时特征 + 推荐 Agent", "零售、金融、互联网", "统一客户身份、下一最佳行动与流失预测"],
+        ["反欺诈关系网络", "实时交易 + 设备/账户图谱 + 图算法 + 风险模型", "银行、支付、保险", "团伙识别、风险传播和可解释证据链"],
+        ["设备运维知识图谱", "设备台账 + 告警/工单 + 拓扑 + 根因 Agent", "能源、运营商、工业", "故障定位、影响分析和维修建议"],
+        ["Agent 数据底座", "MCP + Memory + 任务状态 + SQL Tool + 沙箱审计", "AI SaaS、企业 AI 中台", "Agent 安全读取、分析和修改业务状态"],
+    ]
+    add_table(slide, 0.42, 1.22, 12.5, 5.78, headers, rows,
+              [2.15, 4.25, 2.5, 3.6], 9.0)
+    add_footer(slide, page)
+    page += 1
+
+    slide = new_slide(prs, "建议的产品演进路线", "先内核确定性能力，再知识库/ChatBI，再知识图谱与 Agent", "建议")
+    stages = [
+        ("阶段 1\nHTAP", "AP 节点\nRedo 增量维护\nCBO 行列选择\n资源隔离", BLUE),
+        ("阶段 2\nAI 数据", "VECTOR/全文\nAI Gateway\n异步 AI Job\n混合检索", CYAN),
+        ("阶段 3\n知识与 BI", "文档智能\nAI Index\nSemantic View\nNL2SQL/RAG", GREEN),
+        ("阶段 4\n知识图谱", "Ontology\n抽取与消歧\n增量图谱\nGraphRAG", ORANGE),
+        ("阶段 5\nAgent Native", "MCP/Memory\n任务状态\n数据沙箱\nTool 审计", BLUE),
+    ]
+    x = 0.3
+    for idx, (title, body, color) in enumerate(stages):
+        add_box(slide, x, 1.55, 2.35, 3.7, title, body, "FFFFFF", color, 16, 13)
+        if idx < len(stages) - 1:
+            add_arrow(slide, x + 2.37, 3.35, x + 2.52, 3.35, SLATE, 1.8)
+        x += 2.58
     add_text(slide, 0.8, 5.75, 11.7, 0.65,
              "原则：每一阶段都直接利用当前数据库中的既有数据；避免先建设一套独立大数据平台再回接数据库。",
              17, NAVY, True, PP_ALIGN.CENTER)

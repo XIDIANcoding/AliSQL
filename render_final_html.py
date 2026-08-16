@@ -41,6 +41,8 @@ SOURCES = {
     "D6": ("Databricks AI Search", "https://docs.databricks.com/aws/en/ai-search/ai-search"),
     "D7": ("Databricks Supervisor Agent", "https://docs.databricks.com/aws/en/agents/agent-bricks/multi-agent-supervisor"),
     "D8": ("Databricks customer: FinThrive", "https://www.databricks.com/customers/finthrive/agent-bricks"),
+    "D9": ("Databricks GraphRAG with Neo4j and Agent Bricks", "https://www.databricks.com/blog/building-improving-and-deploying-knowledge-graph-rag-systems-databricks"),
+    "D10": ("Databricks GraphFrames", "https://docs.databricks.com/aws/en/integrations/graphframes/"),
 }
 
 
@@ -260,8 +262,118 @@ OceanBase Lakebase 的部分内部进程边界尚未公开，不能自行判定�
 控制面负责语义模型、Agent、权限与审计；湖连接层负责 Iceberg/Catalog。这样既保持“数据库是核心”，又避免把不确定、长延迟、GPU 密集型逻辑塞进核心事务进程。</div>
 </section>
 
+<section class="card">
+<h2>7. 自研产品演进：一键知识图谱、GraphRAG 与对外解决方案</h2>
+
+<h3>7.1 “AP 节点 + TP AI Function + 模型服务”与厂商路线的关系</h3>
+<p>这条路线与 PolarDB、Oracle、OceanBase 有明显共性：TP 保留事务事实和统一 SQL 入口，AP 承载列式分析与大规模派生计算，AI Function 把模型能力暴露为数据库函数。差别只在物理实现：</p>
+<ul>
+<li><strong>接近 PolarDB：</strong>专用 AP/IMCI 节点通过 Redo/复制维护列式数据，AI 算力由独立 AI Node 或 Serverless 承载。{refs("P1","P3","P5","P6")}</li>
+<li><strong>接近 Oracle：</strong>SQL、关系过滤、列式分析和向量检索保持在数据库执行体系内，轻量 ONNX 可库内执行。{refs("O1","O2","O6")}</li>
+<li><strong>接近 OceanBase：</strong>AI Function 负责在 SQL 中调用模型 endpoint，语义索引把文本向量化和检索封装为数据库能力。{refs("B2","B3","B7")}</li>
+</ul>
+<div class="warn"><strong>关键架构约束：</strong>AI Function 的 SQL 语法、权限、任务状态和结果版本应属于数据库；大型模型 HTTP 调用、GPU 推理、文档解析与批量 Embedding 不应占用 TP 事务线程，应路由到独立 AI Gateway/AI Node/Worker。同步函数只用于小输入、严格超时和可降级场景；批量任务默认异步。</div>
+
+<h3>7.2 一键生成知识图谱的产品目标</h3>
+<p>“一键”应表示系统自动完成数据发现、候选本体、抽取、融合、增量维护和服务发布，而不是隐藏所有业务确认。生产级知识图谱必须保留本体审核、实体合并审核、来源证据和回滚机制。</p>
+<table>
+<tr><th>阶段</th><th>系统自动完成</th><th>需要用户确认</th><th>主要执行位置</th></tr>
+<tr><td>1. 数据接入与快照</td><td>发现表、主外键、字段注释、文档目录；建立一致性快照和 LSN/SCN 水位</td><td>选择数据范围、敏感字段和刷新策略</td><td>TP 元数据 + AP 快照/复制层</td></tr>
+<tr><td>2. 候选本体生成</td><td>根据 Schema、样例数据、指标语义生成实体类型、关系类型和属性约束</td><td>业务人员审核本体、关系方向和业务口径</td><td>管控面 Ontology Studio + 模型服务</td></tr>
+<tr><td>3. 实体/关系抽取</td><td>结构化表用 SQL/Join 确定性生成；文档用 LLM/NER/RE 抽取实体、关系和证据片段</td><td>低置信度结果抽样审核</td><td>AP 节点 + AI Worker</td></tr>
+<tr><td>4. 实体消歧与融合</td><td>主键、规则、标准化、向量相似度和邻居关系联合匹配；生成 canonical entity</td><td>冲突实体合并/拆分确认</td><td>AP 节点批量 Join + 向量/图算法</td></tr>
+<tr><td>5. 图谱持久化</td><td>写入实体表、关系表、属性、向量、来源、有效时间和置信度</td><td>选择关系保留周期和访问权限</td><td>数据库图谱表/原生 Property Graph</td></tr>
+<tr><td>6. 增量更新</td><td>消费 Redo/CDC；按源主键更新、失效或重抽取关系；维护图谱版本</td><td>模型或本体升级时批准全量重算</td><td>复制层 + AP/AI Worker</td></tr>
+<tr><td>7. 发布服务</td><td>生成图谱浏览、多跳查询、GraphRAG、风险传播和 MCP/REST endpoint</td><td>配置工具权限和服务 SLA</td><td>图查询引擎 + Agent/服务层</td></tr>
+</table>
+
+<h3>7.3 一键知识图谱需要具备的技术支持</h3>
+<table>
+<tr><th>技术域</th><th>必须能力</th><th>建议产品组件</th><th>工程落点</th></tr>
+<tr><td>一致数据基础</td><td>一致性快照、Redo/CDC、水位、Schema 演进、删除传播</td><td>Graph Build Snapshot / Graph Change Feed</td><td>TP 内核与复制层</td></tr>
+<tr><td>本体与语义</td><td>实体/关系/属性约束、业务术语、版本、审批、兼容迁移</td><td>Ontology Studio / Semantic Catalog</td><td>管控面</td></tr>
+<tr><td>结构化抽取</td><td>PK/FK 发现、SQL 模板、Join、规则表达式、时间关系</td><td>Deterministic Graph Builder</td><td>AP 节点</td></tr>
+<tr><td>非结构化抽取</td><td>OCR、Parser、Chunking、NER、Relation Extraction、证据定位</td><td>Document Intelligence Worker</td><td>AI Worker 集群</td></tr>
+<tr><td>实体解析</td><td>规范化、模糊匹配、向量匹配、图邻居匹配、人工审核</td><td>Entity Resolution Service</td><td>AP + AI 服务</td></tr>
+<tr><td>图存储与查询</td><td>实体/边模型、图索引、多跳路径、时态图、社区与中心性算法</td><td>Graph Tables；成熟后增加 Property Graph Executor</td><td>数据库/AP 节点</td></tr>
+<tr><td>混合检索</td><td>关系过滤、全文、向量、图邻居召回、Rerank</td><td>Hybrid Search / GraphRAG Retriever</td><td>数据库执行器 + AI Search</td></tr>
+<tr><td>治理与质量</td><td>RLS、列脱敏、来源血缘、置信度、模型/Prompt 版本、评测集</td><td>Graph Quality Center / AI Audit</td><td>内核安全 + 管控面</td></tr>
+</table>
+
+<h3>7.4 推荐的数据模型与版本语义</h3>
+<p>第一阶段无需立即开发完整图数据库，可先用关系表保存 Property Graph，并由 AP 节点执行大规模 Join、图邻接展开和向量召回：</p>
+<pre><code>graph_entity(
+  graph_id, entity_id, entity_type, properties_json,
+  embedding, source_table, source_pk, source_lsn,
+  ontology_version, model_version, confidence,
+  valid_from, valid_to
+)
+
+graph_relation(
+  graph_id, edge_id, source_entity_id, relation_type,
+  target_entity_id, properties_json, evidence_text,
+  source_table, source_pk, source_lsn,
+  ontology_version, model_version, confidence,
+  valid_from, valid_to
+)</code></pre>
+<p>必须保存 <code>source_lsn</code>、<code>ontology_version</code>、<code>model_version</code> 和 <code>evidence_text</code>，否则图谱无法审计、重算、回滚或解释。</p>
+
+<h3>7.5 “一键生成”产品接口示例</h3>
+<pre><code>CREATE KNOWLEDGE GRAPH supply_chain_graph
+FROM TABLES (supplier, product, purchase_order, quality_report)
+AND DOCUMENTS 'oss://enterprise/contracts/'
+WITH (
+  ontology = 'AUTO_REVIEW',
+  entity_resolution = 'HYBRID',
+  model = 'qwen-max',
+  refresh = 'INCREMENTAL',
+  consistency = 'APPLIED_LSN',
+  evidence = 'REQUIRED'
+);
+
+SHOW KNOWLEDGE GRAPH JOB supply_chain_graph;
+PUBLISH GRAPH SERVICE supply_chain_graph
+WITH (protocols = 'SQL,REST,MCP', rag = 'GRAPH_RAG');</code></pre>
+
+<h3>7.6 与 Databricks Agent Bricks 的关系和差异化</h3>
+<p>Agent Bricks 已经能够基于 Unity Catalog 数据构建 Knowledge Assistant、用 Genie 分析结构化表，并由 Supervisor 编排多个 Agent；但官方标准产品并不等同于“一键生成持久化知识图谱”。Databricks 官方 GraphRAG 实践使用 Delta Tables、Neo4j Spark Connector、Neo4j Knowledge Graph 和 Agent Bricks Custom Agent 组合完成。{refs("D5","D7","D9")}</p>
+<p>因此你的差异化可以是：<strong>把图谱构建、增量一致性、实体消歧、来源证据、图存储和 GraphRAG 服务做成数据库原生产品闭环</strong>，而不只提供 Agent 编排。</p>
+
+<h3>7.7 这套“TP + AP + AI”架构可以对外提供的能力</h3>
+<table>
+<tr><th>产品能力</th><th>核心组件</th><th>客户得到的结果</th></tr>
+<tr><td>实时智能分析 / ChatBI</td><td>AP 列存、Semantic View、NL2SQL、图表和总结 Agent</td><td>直接分析最新订单、库存、客户和运营数据</td></tr>
+<tr><td>数据库原生知识库</td><td>文档解析、AI Index、全文+向量+标量混合检索、RAG API</td><td>知识文档与实时业务状态统一问答</td></tr>
+<tr><td>一键知识图谱 / GraphRAG</td><td>Ontology、抽取、实体消歧、图存储、多跳查询、证据链</td><td>供应链、客户、设备、风险关系可视化和可解释问答</td></tr>
+<tr><td>实时风控与反欺诈</td><td>TP 交易、AP 实时特征、图关系、向量相似、AI_PREDICT</td><td>识别团伙、设备关联、异常交易和风险传播</td></tr>
+<tr><td>搜索与推荐</td><td>实时行为、商品属性、全文、向量和图关系混合召回</td><td>语义商品搜索、相似内容和个性化推荐</td></tr>
+<tr><td>文档智能与 AI ETL</td><td>OCR、抽取、分类、摘要、标签、结构化回填</td><td>合同、工单、报告自动进入可查询业务表</td></tr>
+<tr><td>Agent 数据底座</td><td>MCP、长期记忆、任务状态、受控 SQL Tool、沙箱和审计</td><td>Agent 可安全读取、分析和修改业务状态</td></tr>
+</table>
+
+<h3>7.8 面向客户的解决方案包装</h3>
+<table>
+<tr><th>解决方案</th><th>目标行业</th><th>交付组合</th><th>首要价值</th></tr>
+<tr><td>实时经营分析助手</td><td>零售、制造、物流、SaaS</td><td>TP + AP 节点 + 自动同步 + Semantic View + ChatBI</td><td>减少 T+1 数仓和人工报表</td></tr>
+<tr><td>企业知识与业务问答</td><td>金融、政企、运营商、制造</td><td>业务表 + 文档 + AI Index + 混合检索 + RAG</td><td>回答同时包含制度知识与实时业务状态</td></tr>
+<tr><td>供应链知识图谱</td><td>制造、零售、汽车</td><td>ERP 表 + 合同/质检文档 + 实体消歧 + GraphRAG</td><td>供应商穿透、替代关系、质量与交付风险分析</td></tr>
+<tr><td>客户 360 与智能营销</td><td>零售、金融、互联网</td><td>客户/订单/行为图谱 + 实时特征 + 推荐 Agent</td><td>统一客户身份、下一最佳行动和流失预测</td></tr>
+<tr><td>反欺诈关系网络</td><td>银行、支付、保险</td><td>实时交易 + 设备/账户图谱 + 图算法 + 风险模型</td><td>团伙识别、风险传播与可解释证据链</td></tr>
+<tr><td>设备运维知识图谱</td><td>能源、运营商、工业</td><td>设备台账 + 告警/工单 + 拓扑 + 根因分析 Agent</td><td>故障定位、影响分析和维修建议</td></tr>
+</table>
+
+<h3>7.9 产品演进顺序</h3>
+<ol>
+<li><strong>HTAP 基础：</strong>AP 节点、Redo/CDC 增量维护、TP/AP 路由、资源隔离和延迟水位。</li>
+<li><strong>AI 数据能力：</strong>模型注册/Gateway、异步 AI Job、VECTOR/全文、混合检索、AI 派生列。</li>
+<li><strong>知识库与 ChatBI：</strong>文档智能、AI Index、Semantic View、NL2SQL、权限继承和评测。</li>
+<li><strong>知识图谱：</strong>Ontology、实体关系抽取、实体消歧、增量图谱、GraphRAG 与质量中心。</li>
+<li><strong>Agent Native：</strong>MCP、长期记忆、任务状态、数据分支/沙箱、Tool 权限与执行审计。</li>
+</ol>
+</section>
+
 <section class="card sources">
-<h2>7. 逐项参考资料</h2>
+<h2>8. 逐项参考资料</h2>
 <p>以下全部为厂商官方文档、官方产品页、官方博客或官方客户案例。图中引用编号与此处一致。</p>
 <ul>{source_list}</ul>
 </section>
