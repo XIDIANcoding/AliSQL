@@ -7,8 +7,9 @@ def render_drawio_svg(drawio_path):
     root = tree.getroot()
     cells = root.findall('.//mxCell')
     
+    # Check max bounds
     max_w = 1140
-    max_h = 660
+    max_h = 720 if 'engineering' in drawio_path else 660
     
     elems = []
     
@@ -93,11 +94,10 @@ def render_drawio_svg(drawio_path):
         if is_banner:
             # Layer-to-layer connection banner
             elems.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="1.5" stroke-dasharray="4 2" />')
-            # Add small down arrow indicator on the left
-            elems.append(f'<polygon points="{x+14},{y+11} {x+22},{y+11} {x+18},{y+22}" fill="{stroke}" />')
-            elems.append(f'<polygon points="{x+w-22},{y+11} {x+w-14},{y+11} {x+w-18},{y+22}" fill="{stroke}" />')
+            elems.append(f'<polygon points="{x+14},{y+10} {x+22},{y+10} {x+18},{y+21}" fill="{stroke}" />')
+            elems.append(f'<polygon points="{x+w-22},{y+10} {x+w-14},{y+10} {x+w-18},{y+21}" fill="{stroke}" />')
             banner_text = lines[0] if lines else ""
-            elems.append(f'<text x="{x+w/2}" y="{y+21}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="{stroke}" text-anchor="middle">{html.escape(banner_text)}</text>')
+            elems.append(f'<text x="{x+w/2}" y="{y+20}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="{stroke}" text-anchor="middle">{html.escape(banner_text)}</text>')
             continue
             
         rx = '8' if 'rounded=1' in style else '4'
@@ -119,7 +119,11 @@ def render_drawio_svg(drawio_path):
     </svg>'''
     return svg_code
 
-for name in ['oracle-26ai-architecture', 'databricks-agent-bricks-architecture', 'snowflake-cortex-horizon-architecture', 'polardb-imci-ai-architecture']:
+files = ['oracle-26ai-architecture', 'databricks-agent-bricks-architecture', 
+         'snowflake-cortex-horizon-architecture', 'polardb-imci-ai-architecture',
+         'engineering-boundary-architecture']
+
+for name in files:
     svg = render_drawio_svg(f'/workspace/diagrams/{name}.drawio')
     with open(f'/workspace/diagrams/{name}.svg', 'w', encoding='utf-8') as f:
         f.write(svg)

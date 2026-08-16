@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram id="engineering-arch" name="自研数据库库仓一体与AI工程边界及部署架构">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="950">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Layer 1: Control Plane -->
+        <mxCell id="box_cp" value="1. 管控面与治理控制中心 (Control Plane - 独立 Web/微服务部署)" style="swimlane;startSize=28;fillColor=#e8eaf6;strokeColor=#283593;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="1040" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="cp1" value="Semantic View 语义配置中心&#xa;(指标公式/口径/同义词可视化定义)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#283593;fontSize=11;fontStyle=1;" vertex="1" parent="box_cp">
+          <mxGeometry x="25" y="40" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cp2" value="Agent 沙箱与分支管理器&#xa;(Fork Database/快照/配额/生命周期)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#283593;fontSize=11;fontStyle=1;" vertex="1" parent="box_cp">
+          <mxGeometry x="280" y="40" width="235" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cp3" value="Model &amp; Key Vault 秘钥中心&#xa;(托管 LLM API Key / 本地私有模型端点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#283593;fontSize=11;fontStyle=1;" vertex="1" parent="box_cp">
+          <mxGeometry x="540" y="40" width="235" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cp4" value="全链路 AI 审计与 Tracing 日志&#xa;(记录 Prompt/SQL/延迟/Token 消耗)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#283593;fontSize=11;fontStyle=1;" vertex="1" parent="box_cp">
+          <mxGeometry x="795" y="40" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 2: External Services -->
+        <mxCell id="box_ext" value="2. 新增外部独立服务矩阵 (External Services - 容器化/K8s/微服务部署，避免阻塞内核)" style="swimlane;startSize=28;fillColor=#fff3e0;strokeColor=#e65100;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="165" width="1040" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ext1" value="MCP Server 协议网关&#xa;[独立微服务 - Go/Node.js]&#xa;对外暴露 SSE/HTTP 工具端点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#e65100;fontSize=11;fontStyle=1;" vertex="1" parent="box_ext">
+          <mxGeometry x="25" y="40" width="230" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="ext2" value="AI 模型推理代理服务 (Model Gateway)&#xa;[同机 Sidecar / 独立 Daemon 进程]&#xa;连接池/熔断/调度 OpenAI/Qwen/vLLM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#e65100;fontSize=11;fontStyle=1;" vertex="1" parent="box_ext">
+          <mxGeometry x="280" y="40" width="245" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="ext3" value="异步 Embedding 与向量回填 Worker&#xa;[独立无状态 Worker 集群]&#xa;消费变更日志/文档切片/批量回填" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#e65100;fontSize=11;fontStyle=1;" vertex="1" parent="box_ext">
+          <mxGeometry x="550" y="40" width="235" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="ext4" value="外部湖仓连接器 (Lake Connector)&#xa;[Arrow Flight / Iceberg 客户端]&#xa;原位挂载外部 S3/OSS/Iceberg 表" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#e65100;fontSize=11;fontStyle=1;" vertex="1" parent="box_ext">
+          <mxGeometry x="805" y="40" width="210" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Connector Banner Ext -> Kernel -->
+        <mxCell id="banner_k_comm" value="进程间通信通道：UDS (Unix Domain Socket) / 共享内存 IPC / gRPC 高速连接 ── 传递 SQL 算子调用与日志流" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontStyle=1;fontSize=11;fontColor=#bf360c;" vertex="1" parent="1">
+          <mxGeometry x="120" y="300" width="900" height="32" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 3: Database Kernel -->
+        <mxCell id="box_kernel" value="3. 数据库内核修改与增强范围 (DB Kernel - C++/Rust 数据面核心进程代码)" style="swimlane;startSize=28;fillColor=#e1f5fe;strokeColor=#0288d1;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="1040" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="k_sql" value="SQL 解析与扩展&#xa;支持 VECTOR(dim) 类型&#xa;AI_EMBED / AI_PREDICT 语法" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="box_kernel">
+          <mxGeometry x="25" y="40" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k_cbo" value="CBO 混合优化器&#xa;识别 TP 短查 / AP 向量化大查询&#xa;标量谓词先过滤 + 向量召回下推" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="box_kernel">
+          <mxGeometry x="280" y="40" width="235" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k_sec" value="内核级安全穿透 (RLS)&#xa;行级权限与列脱敏策略&#xa;跨关系与向量检索统一拦截" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="box_kernel">
+          <mxGeometry x="540" y="40" width="235" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k_exec" value="SIMD 混合执行器&#xa;标量过滤 + BM25 倒排&#xa;+ HNSW 向量近似搜索多路召回" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="box_kernel">
+          <mxGeometry x="795" y="40" width="220" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- Inside Kernel: Storage Engines -->
+        <mxCell id="k_tp" value="行存引擎 (TP 事务)&#xa;B-Tree / LSM / ACID 事务&#xa;生成 WAL / Redo 日志" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="box_kernel">
+          <mxGeometry x="25" y="125" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k_pipe" value="内核流式同步管道&#xa;Redo 解析 ──&gt; 内存列存&#xa;(零 ETL 内存复制)" style="shape=flexArrow;endArrow=classic;html=1;fillColor=#bbdefb;strokeColor=#0288d1;fontSize=10;" vertex="1" parent="box_kernel">
+          <mxGeometry x="270" y="135" width="135" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k_ap" value="内存列存引擎 (IMCI AP)&#xa;SIMD 向量化加速 / 列裁剪&#xa;数据字典压缩与列式计算" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="box_kernel">
+          <mxGeometry x="420" y="125" width="265" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k_vec" value="原生向量引擎 (Vector Engine)&#xa;内置 HNSW / IVF 索引管理器&#xa;AVX-512 / Neon 硬件距离计算" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#0288d1;fontSize=11;fontStyle=1;" vertex="1" parent="box_kernel">
+          <mxGeometry x="705" y="125" width="310" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 4: Storage Layer -->
+        <mxCell id="box_store" value="4. 存储与硬件基础设施 (Storage &amp; Infrastructure)" style="swimlane;startSize=28;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="580" width="1040" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="st1" value="本地高速 NVMe SSD / 共享块存储&#xa;(存放 TP 行存数据文件与 Redo Log)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="box_store">
+          <mxGeometry x="25" y="40" width="310" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="st2" value="内存列存池 (In-Memory Buffer Pool)&#xa;(存放实时解析更新的 IMCI 列存与 HNSW 图索引)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="box_store">
+          <mxGeometry x="360" y="40" width="340" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="st3" value="对象存储 / 开放数据湖 (S3 / OSS / Iceberg)&#xa;(存放非结构化大文件、历史冷数据与备份)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="box_store">
+          <mxGeometry x="725" y="40" width="290" height="55" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
