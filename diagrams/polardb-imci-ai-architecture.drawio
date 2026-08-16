@@ -1,67 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="drawio" version="26.0.0">
   <diagram id="polardb-arch" name="PolarDB IMCI and PolarDB for AI Architecture">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
         <!-- Application / Agent Fleet -->
-        <mxCell id="p_app" value="业务系统 &amp; 智能体集群 (Agent Fleet / 销售助手 / 营销决策)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="60" y="30" width="1020" height="40" as="geometry" />
+        <mxCell id="p_app" value="业务应用端 &amp; 智能体集群 (Agent Fleet / 销售助手 / 营销决策 / 智能客服)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="50" y="25" width="1040" height="38" as="geometry" />
         </mxCell>
 
         <!-- Compute Cluster -->
-        <mxCell id="p_comp" value="1. PolarDB 计算集群 (一写多读架构，标准 MySQL 协议)" style="swimlane;startSize=28;fillColor=#e3f2fd;strokeColor=#1565c0;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="95" width="1020" height="155" as="geometry" />
+        <mxCell id="p_comp" value="1. PolarDB 计算集群 (一写多读架构，标准 MySQL 9.0 协议与 Vector 语法)" style="swimlane;startSize=28;fillColor=#e3f2fd;strokeColor=#1565c0;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="1040" height="155" as="geometry" />
         </mxCell>
         <mxCell id="p_tp" value="主节点 (Primary TP)&#xa;高并发在线事务写入&#xa;生成 Redo 日志" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=11;fontStyle=1;" vertex="1" parent="p_comp">
-          <mxGeometry x="30" y="45" width="220" height="85" as="geometry" />
+          <mxGeometry x="25" y="45" width="220" height="85" as="geometry" />
         </mxCell>
         <mxCell id="p_sync" value="内存流式解析&#xa;毫秒级 Redo 同步&#xa;(零 ETL 搬迁)" style="shape=flexArrow;endArrow=classic;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=10;" vertex="1" parent="p_comp">
-          <mxGeometry x="270" y="60" width="120" height="50" as="geometry" />
+          <mxGeometry x="260" y="60" width="130" height="50" as="geometry" />
         </mxCell>
         <mxCell id="p_ap" value="只读列存节点 (IMCI AP)&#xa;内存列存加速 / 向量化执行&#xa;内置 HGraph 向量检索算法" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=11;fontStyle=1;" vertex="1" parent="p_comp">
-          <mxGeometry x="410" y="45" width="260" height="85" as="geometry" />
+          <mxGeometry x="405" y="45" width="275" height="85" as="geometry" />
         </mxCell>
         <mxCell id="p_ai" value="PolarDB for AI 节点&#xa;库内模型推理 (In-DB)&#xa;内置通义千问 / MLOps 特征工程" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=11;fontStyle=1;" vertex="1" parent="p_comp">
-          <mxGeometry x="695" y="45" width="295" height="85" as="geometry" />
+          <mxGeometry x="700" y="45" width="315" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Connector Banner 1 -> 2 -->
+        <mxCell id="banner_p_12" value="层间配合：库内 AI 算子下发与沙箱上下文注入 ── SQL 直接调度 AI_PREDICT / 向量检索，驱动 Agent 工作空间" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontStyle=1;fontSize=11;fontColor=#0d47a1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="250" width="900" height="34" as="geometry" />
         </mxCell>
 
         <!-- Agent Lakebase -->
-        <mxCell id="p_ws" value="2. Agent Lakebase 工作空间基础设施 (2026 全新能力)" style="swimlane;startSize=28;fillColor=#fff8e1;strokeColor=#f57f17;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="275" width="1020" height="110" as="geometry" />
+        <mxCell id="p_ws" value="2. Agent Lakebase 工作空间基础设施 (2026 全新能力 - 面向百万级 Agent 隔离运行)" style="swimlane;startSize=28;fillColor=#fff8e1;strokeColor=#f57f17;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="300" width="1040" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="p_ws1" value="百万级 Agent 隔离空间&#xa;(每个 Agent 独立文件系统视图)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#f57f17;fontSize=11;" vertex="1" parent="p_ws">
-          <mxGeometry x="30" y="40" width="290" height="50" as="geometry" />
+        <mxCell id="p_ws1" value="百万级 Agent 隔离空间&#xa;(每个 Agent 独立文件系统与会话视图)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#f57f17;fontSize=11;" vertex="1" parent="p_ws">
+          <mxGeometry x="25" y="42" width="310" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="p_ws2" value="嵌入式组件原生支持&#xa;(SQLite / DuckDB / LanceDB / Parquet)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#f57f17;fontSize=11;" vertex="1" parent="p_ws">
-          <mxGeometry x="360" y="40" width="290" height="50" as="geometry" />
+        <mxCell id="p_ws2" value="嵌入式组件原生支持&#xa;(就地读写 SQLite / DuckDB / LanceDB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#f57f17;fontSize=11;" vertex="1" parent="p_ws">
+          <mxGeometry x="360" y="42" width="310" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="p_ws3" value="Agent 级生命周期管理&#xa;(秒级快照 / 秒级克隆与回滚恢复)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#f57f17;fontSize=11;" vertex="1" parent="p_ws">
-          <mxGeometry x="690" y="40" width="300" height="50" as="geometry" />
+        <mxCell id="p_ws3" value="Agent 级生命周期管理&#xa;(秒级快照 / 秒级克隆 / 挂载与故障回滚)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#f57f17;fontSize=11;" vertex="1" parent="p_ws">
+          <mxGeometry x="695" y="42" width="320" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Connector Banner 2 -> 3 -->
+        <mxCell id="banner_p_23" value="层间配合：共享存储底座与高速 RDMA 互联 ── 物理上仅一份数据，行存/列存/对象存储通过统一元数据管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f57f17;fontStyle=1;fontSize=11;fontColor=#e65100;" vertex="1" parent="1">
+          <mxGeometry x="120" y="435" width="900" height="34" as="geometry" />
         </mxCell>
 
         <!-- Storage Layer -->
-        <mxCell id="p_store" value="3. 共享分布式存储底座 (PolarStore &amp; 外部 OSS 湖存储)" style="swimlane;startSize=28;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="410" width="1020" height="110" as="geometry" />
+        <mxCell id="p_store" value="3. 共享分布式存储底座 (PolarStore 块存储 &amp; 外部 OSS 湖存储)" style="swimlane;startSize=28;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="485" width="1040" height="135" as="geometry" />
         </mxCell>
-        <mxCell id="p_ps" value="PolarStore 共享块存储&#xa;RDMA 高速互联 / 存算分离 / 物理一份数据" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="p_store">
-          <mxGeometry x="30" y="40" width="450" height="50" as="geometry" />
+        <mxCell id="p_ps" value="PolarStore 共享块存储&#xa;RDMA 高速互联 / 存算分离 / 物理一份数据&#xa;(主节点与列存节点免复制共享底层数据文件)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="p_store">
+          <mxGeometry x="25" y="45" width="465" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="p_oss" value="OSS 对象存储 &amp; 数据湖加速&#xa;大容量多模态非结构化文件统一管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="p_store">
-          <mxGeometry x="520" y="40" width="470" height="50" as="geometry" />
-        </mxCell>
-
-        <!-- Connectors -->
-        <mxCell id="pe1" value="SQL 查询 / 智能调用" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#1565c0;" edge="1" parent="1" source="p_app" target="p_comp">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="pe2" value="分配持久化沙箱工作区" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#f57f17;" edge="1" parent="1" source="p_comp" target="p_ws">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="pe3" value="持久化到共享底层存储" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;strokeColor=#2e7d32;" edge="1" parent="1" source="p_ws" target="p_store">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="p_oss" value="OSS 对象存储 &amp; 数据湖加速&#xa;大容量多模态非结构化文件 (图片/PDF/视频) 统一挂载&#xa;(结合 Object Table 与 AI Function 自动切片向量化)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="p_store">
+          <mxGeometry x="515" y="45" width="500" height="65" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

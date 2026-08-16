@@ -7,9 +7,8 @@ def render_drawio_svg(drawio_path):
     root = tree.getroot()
     cells = root.findall('.//mxCell')
     
-    # Dimensions
     max_w = 1140
-    max_h = 590
+    max_h = 660
     
     elems = []
     
@@ -43,10 +42,10 @@ def render_drawio_svg(drawio_path):
         title = val.split('\n')[0].split('&#xa;')[0]
         
         elems.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="{fill}" stroke="{stroke}" stroke-width="1.8" />')
-        elems.append(f'<path d="M {x} {y+10} A 10 10 0 0 1 {x+10} {y} L {x+w-10} {y} A 10 10 0 0 1 {x+w} {y+10} L {x+w} {y+32} L {x} {y+32} Z" fill="{stroke}" opacity="0.12" />')
-        elems.append(f'<text x="{x+18}" y="{y+21}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700" fill="{stroke}">{html.escape(title)}</text>')
+        elems.append(f'<path d="M {x} {y+10} A 10 10 0 0 1 {x+10} {y} L {x+w-10} {y} A 10 10 0 0 1 {x+w} {y+10} L {x+w} {y+30} L {x} {y+30} Z" fill="{stroke}" opacity="0.14" />')
+        elems.append(f'<text x="{x+18}" y="{y+20}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700" fill="{stroke}">{html.escape(title)}</text>')
 
-    # 2. Render children items and normal shapes
+    # 2. Render children items, connectors, and banners
     for c in cells:
         style = c.get('style', '')
         geo = c.find('mxGeometry')
@@ -55,6 +54,7 @@ def render_drawio_svg(drawio_path):
         if 'swimlane' in style:
             continue
             
+        cid = c.get('id', '')
         x = float(geo.get('x', '0'))
         y = float(geo.get('y', '0'))
         w = float(geo.get('width', '0'))
@@ -82,18 +82,30 @@ def render_drawio_svg(drawio_path):
             stroke = m_stroke.group(1)
             
         is_arrow = 'shape=flexArrow' in style
+        is_banner = 'banner' in cid
+        
         if is_arrow:
             elems.append(f'<path d="M {x} {y+h*0.25} L {x+w-18} {y+h*0.25} L {x+w-18} {y} L {x+w} {y+h*0.5} L {x+w-18} {y+h} L {x+w-18} {y+h*0.75} L {x} {y+h*0.75} Z" fill="{fill}" stroke="{stroke}" stroke-width="1.5" />')
             for idx, line in enumerate(lines):
-                elems.append(f'<text x="{x + (w-18)/2}" y="{y + 20 + idx*15}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0f172a" text-anchor="middle">{html.escape(line)}</text>')
+                elems.append(f'<text x="{x + (w-18)/2}" y="{y + 18 + idx*14}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0f172a" text-anchor="middle">{html.escape(line)}</text>')
+            continue
+            
+        if is_banner:
+            # Layer-to-layer connection banner
+            elems.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="6" fill="{fill}" stroke="{stroke}" stroke-width="1.5" stroke-dasharray="4 2" />')
+            # Add small down arrow indicator on the left
+            elems.append(f'<polygon points="{x+14},{y+11} {x+22},{y+11} {x+18},{y+22}" fill="{stroke}" />')
+            elems.append(f'<polygon points="{x+w-22},{y+11} {x+w-14},{y+11} {x+w-18},{y+22}" fill="{stroke}" />')
+            banner_text = lines[0] if lines else ""
+            elems.append(f'<text x="{x+w/2}" y="{y+21}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="{stroke}" text-anchor="middle">{html.escape(banner_text)}</text>')
             continue
             
         rx = '8' if 'rounded=1' in style else '4'
         elems.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" fill="{fill}" stroke="{stroke}" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" />')
         
         total_lines = len(lines)
-        line_height = 16
-        start_y = y + (h - (total_lines * line_height)) / 2 + 13
+        line_height = 15.5
+        start_y = y + (h - (total_lines * line_height)) / 2 + 12.5
         
         for idx, line in enumerate(lines):
             is_title = (idx == 0)
