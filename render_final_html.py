@@ -8,7 +8,6 @@ oracle_svg = get_svg('oracle-26ai-architecture')
 databricks_svg = get_svg('databricks-agent-bricks-architecture')
 snowflake_svg = get_svg('snowflake-cortex-horizon-architecture')
 polardb_svg = get_svg('polardb-imci-ai-architecture')
-eng_svg = get_svg('engineering-boundary-architecture')
 
 html_content = f"""<!doctype html>
 <html lang="zh-CN">
@@ -124,6 +123,31 @@ html_content = f"""<!doctype html>
       margin: 20px 0;
     }}
 
+    .legend-box {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #f1f5f9;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      align-items: center;
+    }}
+
+    .legend-item {{
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }}
+
+    .legend-dot {{
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }}
+
     .tags {{ margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }}
     .tag {{
       display: inline-block;
@@ -217,17 +241,6 @@ html_content = f"""<!doctype html>
       margin-right: 6px;
     }}
 
-    .code-badge {{
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-family: monospace;
-      font-weight: 700;
-      background: #e2e8f0;
-      color: #334155;
-    }}
-
     @media (max-width: 800px) {{
       header {{ padding: 32px 24px; border-radius: 18px; }}
       header h1 {{ font-size: 24px; }}
@@ -242,11 +255,11 @@ html_content = f"""<!doctype html>
     <header>
       <h1>AI 时代数据库湖库/库仓一体与 Agent 架构深度分析报告</h1>
       <p><strong>报告日期：</strong>2026-08-16</p>
-      <p><strong>分析核心：</strong>OceanBase 湖库一体、Databricks (Mosaic AI / Agent Bricks)、Oracle 26ai (Autonomous Lakehouse)、Snowflake (Cortex / Horizon)、阿里云 PolarDB (IMCI / Lakebase) 等各大主流厂商具体架构设计、层间配合数据流、真实落地客户案例，以及<strong>自研数据库代码落点、组件物理边界与服务部署形态全景拆解</strong>。</p>
+      <p><strong>分析核心：</strong>OceanBase 湖库一体、Databricks (Mosaic AI / Agent Bricks)、Oracle 26ai (Autonomous Lakehouse)、Snowflake (Cortex / Horizon)、阿里云 PolarDB (IMCI / Lakebase) 等各大主流厂商具体架构设计、<strong>组件物理落点（内核/管控面/复制管道/外部微服务）</strong>、层间配合数据流与落地客户案例深度拆解。</p>
       <div class="tags">
         <span class="tag">库仓一体</span>
         <span class="tag">湖库一体</span>
-        <span class="tag">内核改动清单</span>
+        <span class="tag">内核改动标注</span>
         <span class="tag">外部服务部署</span>
         <span class="tag">Database-First</span>
         <span class="tag">Agent Bricks</span>
@@ -255,149 +268,79 @@ html_content = f"""<!doctype html>
       </div>
     </header>
 
-    <!-- SECTION: Engineering Boundaries -->
-    <section class="card" style="border: 2px solid #0284c7;">
-      <h2>🌟 自研数据库落地工程指南：组件物理边界、内核代码落点与服务部署形态</h2>
+    <!-- SECTION 1: Strategic Vision -->
+    <section class="card">
+      <h2>一、战略共识：利用既有数据，增强内核做“库仓一体+AI”</h2>
       <div class="summary">
         <p>
-          <strong>解决核心疑惑：</strong>要把数据库做成“库仓一体 + AI”，团队研发的<strong>代码到底写在哪里？哪些必须做在数据库内核里？哪些需要独立外部微服务？服务如何部署通信？</strong>
+          <strong>行业演进本质：</strong>当前主流数据库厂商、数仓与湖仓平台（如 Oracle、Databricks、Snowflake、OceanBase、阿里云 PolarDB 等）正在不约而同地走向同一终局——<strong>统一数据底座（Unified Data Foundation）</strong>。
         </p>
         <p>
-          为了避免大模型秒级延迟、GPU 故障或复杂协议拖垮数据库内核，工程架构必须将系统严格划分为 <strong>4 大物理边界</strong>：
-          <strong>1. 管控面 Web 中心</strong>、<strong>2. 外部独立微服务矩阵</strong>、<strong>3. 数据库内核进程 (C++/Rust)</strong>、<strong>4. 底层混合存储</strong>。
+          你们作为自研数据库团队，所选定的战略路线（<strong>“增强数据库内核，走库仓一体，利用既有数据优势，引入列存仓与 AI 大数据分析能力”</strong>），不仅与 OceanBase 的底层逻辑完全一致，也是数据库龙头 <strong>Oracle（23ai/26ai）</strong> 与 <strong>阿里云 PolarDB</strong> 最核心的成功路径。
+        </p>
+        <p>
+          <strong>核心护城河：</strong>企业最核心、最具价值的业务数据已经在你们的 TP 数据库中。<strong>“计算与模型向既有数据靠近”</strong> 的效率，永远远高于将数百 TB 数据通过繁重的 CDC/ETL 管道搬运到外围系统。
         </p>
       </div>
-
-      <div class="diagram-container">
-        <div class="diagram-title">【自研工程全景架构图】组件物理边界、内核代码落点与服务部署形态 (draw.io 绘制)</div>
-        {eng_svg}
-      </div>
-
-      <h3>1. 必须做在【数据库内核 (DB Kernel)】里的工作（C++/Rust 数据面核心）</h3>
-      <table>
-        <tr>
-          <th>内核模块</th>
-          <th>内核代码落点 / 改造内容</th>
-          <th>具体实现细节与技术选型</th>
-        </tr>
-        <tr>
-          <td><strong>数据类型扩展</strong></td>
-          <td><span class="code-badge">SQL Parser &amp; Type System</span></td>
-          <td>新增原生 <code>VECTOR(dim)</code> 类型（支持 768/1536 维 float 数组）与高效二进制 <code>JSON</code> 存储格式。</td>
-        </tr>
-        <tr>
-          <td><strong>原生向量索引与算子</strong></td>
-          <td><span class="code-badge">Storage Engine &amp; Index Manager</span></td>
-          <td>在存储层内置 <strong>HNSW / IVF-Flat</strong> 索引管理器。利用 <strong>AVX-512 / ARM Neon SIMD 指令集</strong> 硬件加速距离计算算子（L2、Cosine、Inner Product）。</td>
-        </tr>
-        <tr>
-          <td><strong>内存列存引擎 (AP)</strong></td>
-          <td><span class="code-badge">Columnar Storage Engine</span></td>
-          <td>实现行存旁的<strong>双格式内存列存 (IMCI)</strong>。支持字典编码压缩、Bit-Packing、按列裁剪与 SIMD 向量化扫表。</td>
-        </tr>
-        <tr>
-          <td><strong>混合查询优化器</strong></td>
-          <td><span class="code-badge">Cost-Based Optimizer (CBO)</span></td>
-          <td>代价模型升级：<br>1. 智能分流 TP 短查询（走 B-Tree 点查）与 AP 复杂查询（走列存）；<br>2. <strong>标量条件先过滤，再做向量 KNN 近似搜索</strong>，避免全表暴力计算。</td>
-        </tr>
-        <tr>
-          <td><strong>混合执行器</strong></td>
-          <td><span class="code-badge">Execution Engine</span></td>
-          <td>实现向量化执行流水线，单条 SQL 闭环支持“标量过滤 + BM25 全文倒排 + HNSW 向量检索”多路融合召回。</td>
-        </tr>
-        <tr>
-          <td><strong>SQL 级 AI 语法</strong></td>
-          <td><span class="code-badge">SQL Functions &amp; UDFs</span></td>
-          <td>内置注册 <code>AI_EMBED(text)</code>、<code>AI_PREDICT(model, input)</code>、<code>AI_EXTRACT(schema, text)</code> 等函数，通过内部 IPC 调用外部代理。</td>
-        </tr>
-        <tr>
-          <td><strong>内核级统一权限</strong></td>
-          <td><span class="code-badge">Security &amp; Policy Checker</span></td>
-          <td>将行级安全（RLS）和列脱敏策略下沉至 Scan 算子层，<strong>保证向量检索和 SQL 查询看到同一份受控数据</strong>。</td>
-        </tr>
-        <tr>
-          <td><strong>内核流式同步管道</strong></td>
-          <td><span class="code-badge">WAL / Redo Engine (In-Kernel)</span></td>
-          <td>内核后台流式线程解析 Redo Log，毫秒级将行存增量转换并刷入内存列存区（零 ETL 物理免复制）。</td>
-        </tr>
-      </table>
-
-      <h3>2. 需要【新开发的外部独立服务 (External Services)】及部署形态</h3>
-      <div class="grid">
-        <div class="mini">
-          <h3>① AI 模型推理代理 (Model Gateway)</h3>
-          <p><strong>部署形态：</strong>同机 Sidecar 容器 或 独立 Daemon 进程 (Python / C++ / Go 实现)。</p>
-          <p><strong>通信方式：</strong>与内核通过 <strong>Unix Domain Socket (UDS) / 共享内存 IPC / gRPC</strong> 高速通信。</p>
-          <p><strong>职责：</strong>接收内核 SQL 函数调用，负责大模型连接池管理、超时重试、熔断降级，统一调度外部 API (OpenAI/Qwen) 或本地私有 vLLM/ONNX 引擎。</p>
-        </div>
-
-        <div class="mini">
-          <h3>② 异步 Embedding 与向量回填 Worker</h3>
-          <p><strong>部署形态：</strong>独立无状态微服务集群 (K8s Deployment / Worker 进程，可水平伸缩)。</p>
-          <p><strong>通信方式：</strong>消费数据库变更日志流 (CDF)，通过专用批量通道将结果写回数据表。</p>
-          <p><strong>职责：</strong>监听大文本/多模态数据变更，自动执行文档切片 (Chunking)、并发计算向量，并回填到表的 AI 列中。</p>
-        </div>
-
-        <div class="mini">
-          <h3>③ 数据库 MCP Server 协议网关</h3>
-          <p><strong>部署形态：</strong>独立轻量级微服务 (Go / Node.js / Python FastMCP 编写)，暴露 SSE / HTTP 端点。</p>
-          <p><strong>通信方式：</strong>标准 MCP 协议对接外部 Client，内部使用连接池直连数据库内核与管控面。</p>
-          <p><strong>职责：</strong>将数据库的元数据字典、受控查询工具、事务沙箱操作标准化暴露给 Cursor、Claude Code、Dify 等 Agent 平台。</p>
-        </div>
-
-        <div class="mini">
-          <h3>④ 外部湖仓连接器 (Lake Connector)</h3>
-          <p><strong>部署形态：</strong>动态共享库插件 (.so) 或独立 Arrow Flight 服务。</p>
-          <p><strong>通信方式：</strong>S3 API / Iceberg REST Catalog 协议。</p>
-          <p><strong>职责：</strong>原位挂载外部 S3 / OSS 对象存储中的 Iceberg / Parquet 冷数据，实现与库内表原位 Join。</p>
-        </div>
-      </div>
-
-      <h3>3. 必须做在【管控面 / 控制台 (Control Plane)】里的功能（独立 Web 平台）</h3>
-      <ul>
-        <li><strong>Semantic Views 语义模型配置中心（学习 Snowflake）：</strong>提供可视化 Web 界面，供 DBA/业务人员配置指标公式（如“净利润 = 营收 - 成本”）、同义词与业务关系，输出标准化语义字典供 Text-to-SQL 使用。</li>
-        <li><strong>Agent 沙箱与分支管理器（学习 OB / PolarDB）：</strong>提供 Copy-on-Write 库级分支（Fork Database）可视化调度，支持海量 Agent 秒级快照创建、配额限制与回滚。</li>
-        <li><strong>Model &amp; Key Vault 秘钥中心：</strong>统一安全托管企业大模型 API Key（OpenAI、通义千问、Claude 等）或本地私有端点，提供 Token 消耗与限流统计。</li>
-        <li><strong>全链路 AI 审计与 Tracing 日志：</strong>完整记录自然语言提问、生成的 SQL、执行耗时、召回文档块及用户操作轨迹，满足金融合规。</li>
-      </ul>
     </section>
 
-    <!-- SECTION: Vendor In-depth -->
+    <!-- SECTION 2: Vendor In-depth with Component Placement -->
     <section class="card">
-      <h2>一、各大厂商架构设计与技术细节剖析 (含 draw.io 原生架构图)</h2>
+      <h2>二、各大厂商架构设计、层间配合与【组件物理落点】标注剖析</h2>
+      
+      <div class="legend-box">
+        <strong>架构图组件物理落点与改造分类图例：</strong>
+        <span class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span><strong>【数据库内核代码】</strong>：直接修改 C++/Rust 数据面进程（事务/存储/列存/向量/执行器）</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#059669;"></span><strong>【管控面 / 控制台】</strong>：独立 Web 管理平台 / 元数据库（语义配置/沙箱管理/安全策略）</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#d97706;"></span><strong>【新增外部服务 / 容器化】</strong>：解耦大模型调用、MCP 网关、Worker 进程（K8s/微服务独立部署）</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span><strong>【复制与同步管道】</strong>：内核后台流式线程 / Redo Log 解析（实现物理零 ETL）</span>
+      </div>
 
       <!-- 1. Oracle -->
       <h3>1. Oracle (Oracle AI Database 26ai &amp; Autonomous AI Lakehouse)</h3>
       <p>
         <span class="badge">技术流派</span><strong>传统数据库内核扩展派（Database-First）</strong><br />
-        Oracle 26ai 的设计哲学是 <strong>“多模汇聚（Converged Database）与计算硬件下推”</strong>。它将事务、列存 AP、向量检索、大模型交互与外部 Iceberg 湖仓融合为一套三层紧密协同架构。
+        Oracle 26ai 将事务、列存 AP、向量检索与库内模型推理高度内聚在同一 C++ 数据库内核进程中，上层通过 PL/SQL 与管控面提供 Select AI Agent 编排，底层结合 Exadata 硬件实现算子下推。
       </p>
 
       <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】Oracle 26ai Autonomous AI Lakehouse 三层协同体系</div>
+        <div class="diagram-title">【架构设计图】Oracle 26ai Autonomous AI Lakehouse 三层协同与组件落点 (draw.io 绘制)</div>
         {oracle_svg}
       </div>
 
-      <h4>三层架构的配合关系：</h4>
+      <h4>三层架构的配合关系与组件物理落点：</h4>
       <ul>
-        <li><strong>第 1 层：智能交互与 Agent 编排层 (Select AI &amp; Select AI Agent)：</strong>
-          在 26ai 中，Agent 成为库内一等公民。内置 <code>DBMS_CLOUD_AI_AGENT</code> 实现了 <strong>ReAct（Reasoning &amp; Acting）</strong> 循环：
-          <code>用户自然语言 -&gt; Planning 任务规划 -&gt; Tool Use (调用 PL/SQL、库内 RAG 或外部 REST) -&gt; Reflection 评估反思 -&gt; 更新记忆</code>。
-          整个过程直接使用数据库的 <code>USER_CLOUD_AI_CONVERSATION</code> 等系统视图审计，<strong>杜绝了外部 LangChain 框架带来的安全漏洞</strong>。
+        <li><strong>第 1 层：智能交互与 Agent 编排层 (Select AI Agent Framework)  <span style="color:#d97706;font-weight:700;">【落点：管控面微服务 + 库内运行时】</span>：</strong>
+          <ul>
+            <li><strong>ReAct 编排引擎：</strong>作为外部微服务或库内 PL/SQL 运行时运行，负责 <code>Planning 规划 -&gt; Tool 调用 -&gt; Reflection 反思</code> 循环。</li>
+            <li><strong>Select AI (NL2SQL)：</strong>部署在管控面 Agent 模块中，绑定元数据字典与 LLM，将自然语言转为高精度 SQL。</li>
+            <li><strong>In-DB Tool &amp; MCP 适配器：</strong>作为外部独立微服务容器化部署，暴露标准 MCP 接口，统一调度库内存储过程与外部 REST API。</li>
+            <li><strong>长短期记忆视图：</strong>物理存储在<strong>数据库内核系统表</strong>（<code>USER_CLOUD_AI_CONVERSATION</code>）中，由内核事务保证审计一致性。</li>
+          </ul>
         </li>
-        <li><strong>第 2 层：统一多模 SQL 计算引擎层 (Converged Engine)：</strong>
-          单条 SQL 可以同时调度：OLTP 强一致行存、<strong>Database In-Memory 双格式内存列存（SIMD 向量化 AP）</strong>、<strong>原生 VECTOR 类型</strong>与 ONNX 库内模型推理引擎。当新数据写入时，库内自动触发 ONNX 模型生成向量，事务保持原子性。
+        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>通过库内函数调用（<code>DBMS_CLOUD_AI</code> / In-DB UDF），Agent 将生成的执行计划与事务上下文直接下发给 SQL 计算引擎。</li>
+        <li><strong>第 2 层：统一多模 SQL 计算引擎层 (Converged Engine)  <span style="color:#2563eb;font-weight:700;">【落点：数据库内核 C++ 核心进程】</span>：</strong>
+          <ul>
+            <li><strong>OLTP 事务引擎：</strong>内核核心代码，负责行存、ACID 强一致性、锁管理并生成 Redo Log。</li>
+            <li><strong>Database In-Memory (AP)：</strong>内核列存模块，行存数据通过<strong>内核 Redo 流式回放线程</strong>毫秒级同步为双格式内存列存，<strong>物理免去外部 ETL 搬迁</strong>。</li>
+            <li><strong>AI Vector Search &amp; ONNX：</strong>内核原生支持 <code>VECTOR</code> 类型与 HNSW 索引；当文本写入时由内核触发同机 ONNX 模型生成向量，保持事务原子性。</li>
+            <li><strong>JSON Duality &amp; Graph：</strong>内核多模模块，实现属性图分析以及关系表与文档格式的透明双向映射。</li>
+          </ul>
         </li>
-        <li><strong>第 3 层：智能存储与开放湖仓加速层 (Exadata AI Storage &amp; Autonomous Lakehouse)：</strong>
-          <strong>Smart Scan 硬件下推：</strong>Exadata 存储节点硬件级并发执行向量距离计算和列裁剪，仅将 Top-K 结果返回计算节点，网络 IO 降低 90%。
-          同时，通过 Autonomous AI Catalog 直接原位挂载外部 S3/Iceberg 表（利用 Delta Sharing 协议），实现库内核心交易数据与外部大数据无缝 Join。
+        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>通过 <strong>Smart Scan 存储硬件算子下推</strong>，向量距离计算与谓词过滤直接在存储层并发完成，仅将 Top-K 结果返回计算层。</li>
+        <li><strong>第 3 层：智能存储与开放湖仓加速层  <span style="color:#059669;font-weight:700;">【落点：底层存储节点 + 湖仓连接器】</span>：</strong>
+          <ul>
+            <li><strong>Exadata Smart Scan：</strong>运行在 Exadata 存储节点底层软件/FPGA 中，硬件级下推计算，节省 90%+ 网络 IO。</li>
+            <li><strong>True Cache &amp; Exascale 闪存：</strong>分布式事务一致性中层缓存集群，为高并发查询提供低延迟。</li>
+            <li><strong>Autonomous AI Catalog 湖仓连接器：</strong>作为外部连接插件与管控面 Catalog，原位直读外部 S3/Iceberg 表（基于 Delta Sharing），实现跨云数据原位 Join。</li>
+          </ul>
         </li>
       </ul>
 
       <h4>落地客户与成效：</h4>
       <ul>
-        <li><strong>全球顶级金融机构与跨国银行：</strong>在核心交易系统中落地实时欺诈检测与投研智能问答，满足严苛的 PCI-DSS 与金融监管合规要求，实现<strong>数据物理不出库</strong>。</li>
-        <li><strong>大型电信运营商：</strong>将数十亿级通话账单与工单非结构化文本统一在 Exadata In-Memory 中，提供亚秒级经营分析与网络故障排查。</li>
+        <li><strong>全球顶级跨国银行：</strong>在核心交易系统中落地实时反洗钱（AML）与实时风控，利用库内向量检索与事务保障，实现<strong>数据物理不出库</strong>。</li>
+        <li><strong>跨国电信巨头：</strong>将数十亿级计费记录与客服通话非结构化工单统一在 Exadata In-Memory 中，提供亚秒级实时经营报表与故障排查。</li>
       </ul>
 
       <hr style="border:none;border-top:1px dashed var(--line);margin:30px 0;" />
@@ -406,39 +349,42 @@ html_content = f"""<!doctype html>
       <h3>2. Databricks (Delta Lake + Unity Catalog + Agent Bricks)</h3>
       <p>
         <span class="badge">技术流派</span><strong>数据湖仓自顶向下派（Lakehouse-First）</strong><br />
-        Databricks 凭借 <strong>“在既有 Delta Lake 上一键启动 Agent（Agent Bricks）”</strong> 成为 AI Agent 基础设施标杆。
+        Databricks 依托 Delta Lake 开放存储底座，通过 Unity Catalog 统筹治理，将 Agent 拆分为外部独立的微服务与 Serverless 向量搜索集群。
       </p>
 
       <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】Databricks Mosaic AI Agent Bricks 架构体系</div>
+        <div class="diagram-title">【架构设计图】Databricks Mosaic AI Agent Bricks 架构体系与组件落点 (draw.io 绘制)</div>
         {databricks_svg}
       </div>
 
-      <h4>架构协作细节与“一键启动 Agent”机制：</h4>
+      <h4>架构协作细节与组件物理落点：</h4>
       <ul>
-        <li><strong>既有数据自动增量同步（AI Search）：</strong>
-          用户无需搭建任何 ETL 管道，只需对既有的 Delta Table 声明创建 <code>AI Search Index</code>。
-          底层的 <strong>Change Data Feed (CDF)</strong> 自动监听数据增删改，Serverless 算力自动调用 Embedding 模型，实时维护 HNSW 向量与 BM25 全文混合索引。
+        <li><strong>第 1 层：Mosaic AI Agent Framework (Agent Bricks)  <span style="color:#d97706;font-weight:700;">【落点：新增外部服务 / Model Serving 容器化部署】</span>：</strong>
+          <ul>
+            <li><strong>Multi-Agent Supervisor：</strong>新增外部编排微服务，负责意图分类、任务拆解与子 Agent 路由。</li>
+            <li><strong>Genie Space (SQL Agent)：</strong>新增外部 AI 服务，针对结构化 Gold 业务表自动生成并执行分析 SQL。</li>
+            <li><strong>Knowledge Assistant：</strong>新增外部 RAG 服务，绑定 AI Search 索引，负责非结构化文档检索。</li>
+            <li><strong>UC Functions (确定性工具)：</strong>在管控面注册的 Python/SQL 业务函数（如授信审批、风控公式），作为 Agent 调用的工具。</li>
+          </ul>
         </li>
-        <li><strong>Agent Bricks 快速装配（Multi-Agent Supervisor）：</strong>
-          Databricks 将 Agent 生产化抽象为三大标准组件，通过监督器（MAS）自动协调：
-          <ol>
-            <li><strong>Genie Space（SQL Agent）：</strong>绑定结构化 Gold 业务表，负责高精度自然语言转 SQL 指标分析；</li>
-            <li><strong>Knowledge Assistant：</strong>绑定 AI Search 索引，负责文档 RAG 与非结构化检索；</li>
-            <li><strong>Unity Catalog Functions：</strong>将 Python/SQL 函数注册为确定性工具（如信用额度审批、风险评级算法）。</li>
-          </ol>
-        </li>
-        <li><strong>Unity Catalog 全链路治理：</strong>
-          Agent 严格继承发起用户的 Identity。若某用户在 Unity Catalog 中被配置了列脱敏或行级安全（RLS），Genie 生成的 SQL 与 Knowledge Assistant 检索结果会自动过滤，并由 MLflow 记录完整输入输出血缘。
+        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>Agent 严格继承用户身份 Token，通过 Unity Catalog 集中进行 RBAC 鉴权、动态列脱敏与行级过滤（RLS），并由 MLflow 记录端到端 Tracing。</li>
+        <li><strong>第 2 层：统一治理控制面 (Unity Catalog)  <span style="color:#059669;font-weight:700;">【落点：管控面独立服务集群 + 元数据库】</span>：</strong>
+          提供统一身份继承、行级安全规则引擎、MLflow 自动评估服务以及数据到 Agent 输出的端到端血缘图谱。</li>
+        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>通过 <strong>Change Data Feed (CDF) 复制管道</strong>捕获数据表变更，异步推送到 Serverless 算力构建向量索引。</li>
+        <li><strong>第 3 层：湖仓存储与自动同步索引层  <span style="color:#2563eb;font-weight:700;">【落点：内核引擎 + 复制管道 + 向量检索集群】</span>：</strong>
+          <ul>
+            <li><strong>既有 Delta Table：</strong>运行在对象存储上的 Bronze/Silver/Gold 分层数据资产。</li>
+            <li><strong>Change Data Feed (CDF)：</strong>内核级逻辑复制管道，将行级增删改事件实时广播。</li>
+            <li><strong>Databricks AI Search：</strong>作为<strong>独立托管的 Serverless 向量搜索集群</strong>部署，自动调用模型计算 Embedding 并维护 HNSW/BM25 混合索引。</li>
+          </ul>
         </li>
       </ul>
 
       <h4>落地客户与成效：</h4>
       <ul>
-        <li><strong>康宁（Corning）：</strong>利用 Mosaic AI 构建企业级研究助手，索引数十万份专利与实验记录，研发检索效率提升数倍。</li>
-        <li><strong>洲际交易所（ICE - Intercontinental Exchange）：</strong>为金融客户提供基于市场数据的合规问答助手，凭借 Unity Catalog 满足金融审计要求。</li>
-        <li><strong>Block（原 Square）：</strong>用于自动化商家运营（如智能菜单自适应生成与销售趋势分析）。</li>
-        <li><strong>巴斯夫（BASF Coatings）：</strong>构建 Marketmind 销售情报 Agent，服务全球 1000 多名销售代表。</li>
+        <li><strong>康宁（Corning）：</strong>基于 Delta Lake 专利库构建企业研究助手，由 Agent Bricks 快速装配上线，研发文献检索效率提升数倍。</li>
+        <li><strong>洲际交易所（ICE）：</strong>为金融客户提供合规问答助手，凭借 Unity Catalog 严格的行级安全与审计满足合规要求。</li>
+        <li><strong>Block (Square) &amp; 巴斯夫 (BASF)：</strong>用于商家自适应运营生成及全球 1000+ 销售代表的智能销售情报辅助。</li>
       </ul>
 
       <hr style="border:none;border-top:1px dashed var(--line);margin:30px 0;" />
@@ -447,31 +393,44 @@ html_content = f"""<!doctype html>
       <h3>3. Snowflake (Horizon Catalog + Cortex AI &amp; Cortex Agents)</h3>
       <p>
         <span class="badge">技术流派</span><strong>云数仓演进派（Data Cloud &amp; Semantic-First）</strong><br />
-        Snowflake 强调 <strong>“语义层（Semantic Views）驱动 + 两层 Analytical Search 闭环”</strong>。
+        Snowflake 强调 <strong>“管控面语义模型驱动 + 外部 Cortex Agent 服务 + 虚拟数仓弹性算力”</strong> 的协同分工。
       </p>
 
       <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】Snowflake Cortex AI 与 Horizon Catalog 协同体系</div>
+        <div class="diagram-title">【架构设计图】Snowflake Cortex AI 与 Horizon Catalog 协同体系及组件落点 (draw.io 绘制)</div>
         {snowflake_svg}
       </div>
 
-      <h4>核心技术协同机制：</h4>
+      <h4>核心技术协同与组件物理落点：</h4>
       <ul>
-        <li><strong>Horizon Semantic Views（语义即代码）：</strong>
-          解决 LLM 直连数仓表容易产生“幻觉 SQL”的痛点。在 Horizon Catalog 中声明指标口径（如“净利润 = 营业收入 - 营业成本 - 税金”）、同义词与维度关联。
-          <strong>Cortex Analyst</strong> 读取语义视图生成 SQL，将企业级 Text-to-SQL 准确率从通用大模型的 60% 提升至 <strong>90% 以上</strong>。
+        <li><strong>第 1 层：Cortex Agents 编排与双驱动工具层  <span style="color:#d97706;font-weight:700;">【落点：新增外部服务 / 容器化 Cortex 运行时】</span>：</strong>
+          <ul>
+            <li><strong>Cortex Agent：</strong>新增外部编排服务，负责意图分类与 Auto-Routing，原生提供标准 MCP 端点。</li>
+            <li><strong>Cortex Analyst：</strong>外部 Text-to-SQL 服务，强制读取 Horizon 语义视图以消除幻觉，准确率达到 90%+。</li>
+            <li><strong>Cortex Search &amp; Analytical Search：</strong>结合独立检索集群与库内分析算子（<code>AI_FILTER</code> / <code>AI_AGG</code>），完成非结构化内容的两层深度分析。</li>
+          </ul>
         </li>
-        <li><strong>两层分析检索（Analytical Search Loop）：</strong>
-          针对大规模非结构化文档分析，采用 <code>Layer 1 剪枝召回 (Cortex Search 动态深度搜索) + Layer 2 库内语义算子 (AI_FILTER / AI_EXTRACT / AI_AGG)</code>，并在 SQL 中直接与结构化数据做 <code>GROUP BY</code> 关联聚合。
+        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>Cortex Analyst 读取语义模型生成标准 SQL，Policy Decision Point (PDP) 实时判定权限并拦截越权请求。</li>
+        <li><strong>第 2 层：统一治理控制面 (Horizon Catalog)  <span style="color:#059669;font-weight:700;">【落点：管控面独立服务集群 + 元数据库】</span>：</strong>
+          <ul>
+            <li><strong>Semantic Views (语义即代码)：</strong>管控面建模模块，统一指标公式、维度关系与同义词定义。</li>
+            <li><strong>Policy Decision Point (PDP)：</strong>安全策略引擎，跨 SQL 与向量检索统一执行动态脱敏和行访问控制。</li>
+            <li><strong>Cortex AI Guardrails：</strong>内容安全过滤模块，实时拦截 PII 敏感信息。</li>
+          </ul>
         </li>
-        <li><strong>原生 MCP Server 对象：</strong>
-          通过 <code>CREATE MCP SERVER</code> 语句，直接将数仓内的 Cortex Agent 暴露为标准 MCP 端点，供外部 Claude Desktop、Cursor 或企业自建应用安全调用。
+        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>将通过安全校验的查询任务下发给无共享架构的虚拟数仓计算节点。</li>
+        <li><strong>第 3 层：弹性计算与统一存储层  <span style="color:#2563eb;font-weight:700;">【落点：数据库内核计算节点 + 湖仓连接器 + 对象存储】</span>：</strong>
+          <ul>
+            <li><strong>虚拟仓库 (Virtual Warehouses)：</strong>C++ 编写的无状态弹性计算集群，按需秒级拉起，执行分布式分析与算子计算。</li>
+            <li><strong>双向开放存储 (Open Iceberg REST Catalog)：</strong>外部湖仓连接插件与底层存储，统一读写内部专有表与外部 S3/Azure Iceberg 表。</li>
+          </ul>
         </li>
       </ul>
 
       <h4>落地客户与成效：</h4>
       <ul>
-        <li><strong>拜耳（Bayer）、Booking.com、DoorDash、SRAM：</strong>广泛应用于供应链智能调度、用户评论全域洞察。SRAM 员工可直接在 Slack 中用自然语言查询实时库存与多维销售 KPI。</li>
+        <li><strong>SRAM：</strong>通过 Cortex Analyst 让非技术员工在 Slack 中直接用自然语言查询多维销售与库存指标，无需 DBA 手工提数。</li>
+        <li><strong>拜耳 (Bayer)、Booking.com、DoorDash：</strong>用于供应链智能调度与海量用户全域评论情感洞察。</li>
       </ul>
 
       <hr style="border:none;border-top:1px dashed var(--line);margin:30px 0;" />
@@ -480,95 +439,157 @@ html_content = f"""<!doctype html>
       <h3>4. 阿里云 PolarDB (PolarDB IMCI + PolarDB for AI + Agent Lakebase)</h3>
       <p>
         <span class="badge">技术流派</span><strong>云原生数据库内核演进派（Cloud-Native DB &amp; HTAP）</strong><br />
-        PolarDB 从计算存储分离的 TP 数据库出发，通过 <strong>只读列存节点（IMCI）</strong> 和 <strong>In-DB AI 算子</strong> 实现了数据库与实时分析、智能推理的深度内聚。
+        PolarDB 采用一写多读架构，主节点 TP 与列存节点 AP 全在内核数据面完成，AI 模型推理与 Agent 沙箱则通过外部微服务和轻量容器解耦。
       </p>
 
       <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】阿里云 PolarDB IMCI、AI 算子化与 Agent Lakebase 架构</div>
+        <div class="diagram-title">【架构设计图】阿里云 PolarDB IMCI、AI 算子化与 Agent Lakebase 架构及组件落点 (draw.io 绘制)</div>
         {polardb_svg}
       </div>
 
-      <h4>各节点分工与配合：</h4>
+      <h4>各节点分工、层间配合与组件物理落点：</h4>
       <ul>
-        <li><strong>TP 事务与 IMCI 列存节点的毫秒级零 ETL 同步：</strong>
-          主节点处理写入并生成 Redo Log。只读列存节点（IMCI）通过内存流式解析 Redo Log，毫秒级更新列存与 HGraph 向量索引，<strong>底层共享同一份 PolarStore 文件，物理上彻底免去数据搬迁</strong>。
+        <li><strong>第 1 层：PolarDB 计算集群  <span style="color:#2563eb;font-weight:700;">【落点：数据库内核进程 + AI 算子节点】</span>：</strong>
+          <ul>
+            <li><strong>主节点 (Primary TP)：</strong>数据库内核代码，负责在线高并发事务写入并生成 Redo Log。</li>
+            <li><strong>内核复制管道：</strong>内核后台线程流式解析 Redo Log，毫秒级更新列存与 HGraph 向量索引（<strong>零 ETL 内存流式复制</strong>）。</li>
+            <li><strong>只读列存节点 (IMCI AP)：</strong>内核列存模块，支持内存列存加速、SIMD 向量化执行与 HGraph 向量检索算法。</li>
+            <li><strong>PolarDB for AI 节点：</strong>作为<strong>外部独立 AI 推理服务 / 同机 Sidecar</strong> 部署，负责大模型推理与 MLOps 特征工程，防止 GPU/模型高延迟拖垮内核。</li>
+          </ul>
         </li>
-        <li><strong>PolarDB for AI 算子化：</strong>
-          通过扩展标准 SQL（如 <code>SELECT AI_PREDICT(...) WHERE VECTOR_DISTANCE(...) &lt; 0.2</code>），将通义千问大模型与 MLOps 推理能力内嵌在数据库执行计划中。
+        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>SQL 引擎直接下发 <code>AI_PREDICT</code> 与向量检索结果，驱动并挂载 Agent 运行时工作空间。</li>
+        <li><strong>第 2 层：Agent Lakebase 工作空间基础设施  <span style="color:#d97706;font-weight:700;">【落点：管控面沙箱管理器 + 容器化挂载工作区】</span>：</strong>
+          <ul>
+            <li><strong>百万级 Agent 隔离空间：</strong>新增外部沙箱服务，为每个 Agent 提供独立的文件系统与上下文视图。</li>
+            <li><strong>嵌入式引擎支持：</strong>沙箱内直接运行嵌入式 SQLite / DuckDB / LanceDB，满足本地快存快取。</li>
+            <li><strong>生命周期管理器：</strong>部署在管控面中，负责 Agent 专属秒级快照、克隆与故障回滚。</li>
+          </ul>
         </li>
-        <li><strong>2026 年全新组件：Agent Lakebase：</strong>
-          为海量智能体提供隔离的工作空间视图，支持直接嵌入 SQLite/DuckDB/LanceDB，并在底层由 PolarDB 元数据驱动，提供百万级 Agent 秒级快照、克隆与挂载回滚。
+        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>通过共享存储底座与 RDMA 高速网络互联，物理上一份数据，行存、列存与对象存储共享底层文件。</li>
+        <li><strong>第 3 层：共享分布式存储底座  <span style="color:#059669;font-weight:700;">【落点：底层共享存储系统 + 对象存储】</span>：</strong>
+          <ul>
+            <li><strong>PolarStore 共享块存储：</strong>共享存储底层系统，支持主节点与只读节点免复制共享数据文件。</li>
+            <li><strong>OSS 对象存储 &amp; 湖仓加速：</strong>外部对象存储，通过 Object Table 与 AI Function 自动挂载非结构化图片/音视频并切片向量化。</li>
+          </ul>
         </li>
       </ul>
 
       <h4>落地客户与成效：</h4>
       <ul>
-        <li><strong>雅迪科技集团（电动车制造巨头）：</strong>
-          在“云销通 App”中集成基于 PolarDB for AI 的智能查询与营销助手，赋能全国 <strong>10 万+ 销售与经销商人员</strong>，以口语化提问实时获取批发、销售、库存全域数据多模态分析结果，<strong>NL2SQL 准确率超 90%</strong>。
-        </li>
-        <li><strong>某头部游戏与移动广告厂商：</strong>用于数亿级用户画像流失预测与广告点击率（CTR）库内实时推理。</li>
+        <li><strong>雅迪科技集团：</strong>在“云销通 App”中集成 PolarDB for AI，服务全国 <strong>10 万+ 销售与经销商人员</strong>，以自然语言口语化提问实时获取库存、批发、销售全域数据，<strong>NL2SQL 准确率超 90%</strong>。</li>
+        <li><strong>头部游戏与广告厂商：</strong>用于数亿级用户画像流失预测与广告点击率（CTR）库内实时推理。</li>
       </ul>
     </section>
 
-    <!-- SECTION: Matrix Comparison -->
+    <!-- SECTION 3: Main Matrix -->
     <section class="card">
-      <h2>二、主流厂商全景矩阵横向对比</h2>
+      <h2>三、主流厂商全景矩阵横向对比</h2>
       <table>
         <tr>
           <th>厂商 / 产品</th>
           <th>产品定位与路线</th>
-          <th>核心架构与技术配合</th>
+          <th>核心架构与组件物理落点</th>
           <th>AI / Agent 核心能力</th>
           <th>典型代表客户</th>
         </tr>
         <tr>
           <td><strong>OceanBase (OB)</strong></td>
           <td>金融级分布式 TP -&gt; HTAP -&gt; 湖库一体 AI 数据库</td>
-          <td>存算分离 + 多模表 (Multimodal Table) + 混合搜索 (标量/全文/向量) + Fork Database 沙箱</td>
-          <td>AI 列 (异步事务一致生成) + seekdb M0 记忆自进化 + DataPilot 语义层</td>
+          <td>【内核】：多模表 (Multimodal Table) + 混合搜索 (标量/全文/向量)<br>【管控/外部】：Fork Database 沙箱 + DataPilot 语义层</td>
+          <td>AI 列 (异步事务一致生成) + seekdb M0 记忆自进化 + 库级数据分支回滚</td>
           <td>蚂蚁阿福 (医疗Agent沙箱)、灵光 (3000万轻应用)、中国联通、货拉拉</td>
         </tr>
         <tr>
           <td><strong>Oracle</strong></td>
           <td>企业关系型数据库龙头 -&gt; 26ai Converged Engine</td>
-          <td>三层协同：Select AI 编排 + Database In-Memory 列存与原生向量 + Exadata Smart Scan 硬件下推</td>
+          <td>【内核】：Database In-Memory 列存 + 原生 Vector 索引<br>【管控/外部】：Select AI Agent 编排微服务 + Exadata 硬件下推</td>
           <td>Select AI Agent (ReAct 循环) + 库内 ONNX 推理 + Autonomous AI Lakehouse 原位读 Iceberg</td>
           <td>全球顶级大型跨国银行、证券核心风控、跨国电信运营商核心计费</td>
         </tr>
         <tr>
           <td><strong>Databricks</strong></td>
           <td>数据湖仓 -&gt; Delta Lake + Unity Catalog 统一数据智能</td>
-          <td>CDF 自动增量索引 + Unity Catalog 统一身份继承与 RLS + MAS 监督器编排</td>
+          <td>【内核/存储】：Delta Table + CDF 复制管道<br>【管控/外部】：Unity Catalog 鉴权集群 + AI Search 向量服务 + Agent Bricks 微服务</td>
           <td>Agent Bricks (一键装配) + Genie Space (SQL Agent) + Databricks AI Search 混合检索</td>
           <td>康宁 (Corning 专利助手)、洲际交易所 (ICE)、Block (Square)、巴斯夫 (BASF)</td>
         </tr>
         <tr>
           <td><strong>Snowflake</strong></td>
           <td>云数仓 -&gt; AI Data Cloud + Apache Polaris 开放治理</td>
-          <td>Horizon Catalog 语义视图 + 虚拟数仓弹性算力 + 两层 Analytical Search 闭环</td>
+          <td>【内核】：C++ 虚拟数仓计算集群<br>【管控/外部】：Horizon Catalog 语义建模 + Cortex Analyst/Search 微服务 + 原生 MCP</td>
           <td>Cortex Analyst (语义驱动 Text-to-SQL) + Cortex Search (文本向量混合) + 原生 MCP Server</td>
           <td>拜耳 (Bayer)、Booking.com、DoorDash、SRAM (Slack 智能 ChatBI)</td>
         </tr>
         <tr>
           <td><strong>阿里云 PolarDB</strong></td>
           <td>云原生分布式数据库 -&gt; IMCI 实时分析 -&gt; Agent Lakebase</td>
-          <td>共享存储 PolarStore + 主节点 TP + 只读列存 IMCI (零ETL) + 库内 AI 算子节点</td>
+          <td>【内核】：主节点 TP + IMCI 内存列存 (Redo 零ETL同步)<br>【管控/外部】：PolarDB for AI 推理 Sidecar + Agent Lakebase 沙箱集群</td>
           <td>PolarDB for AI (库内通义千问推理) + 原生 Vector 类型 + Agent Lakebase 百万级沙箱</td>
           <td>雅迪科技 (10万+销售端智能运营)、头部移动广告与游戏企业</td>
         </tr>
         <tr>
           <td><strong>AWS</strong></td>
           <td>分立式云服务组合 -&gt; Zero-ETL 存储复制与联邦</td>
-          <td>Aurora TP 存储日志秒级复制 -&gt; Redshift AP 托管存储 / S3 Tables (Iceberg)</td>
+          <td>【内核/存储】：Aurora TP + Redshift AP<br>【管控/外部】：Zero-ETL 复制管道 + Glue Catalog + SageMaker Unified Studio</td>
           <td>SageMaker Unified Studio + Bedrock 大模型 + Glue REST Catalog 联邦鉴权</td>
           <td>跨国大型企业云上大数据与电商实时分析架构</td>
         </tr>
       </table>
     </section>
 
-    <!-- SECTION: Reference Links -->
+    <!-- SECTION 4: Engineering Action Blueprint -->
     <section class="card">
-      <h2>三、参考资料与官方文档</h2>
+      <h2>四、自研数据库走“库仓一体+AI”的技术路线与研发建议</h2>
+      
+      <div class="note">
+        <strong>核心战略判断：</strong>
+        数据库的核心资产是<strong>既有业务数据与事务一致性</strong>。你们的目标应当是<strong>“让数据库内核吞并数仓 AP 与 AI 上下文能力，杜绝用户采购外部 Kafka + ClickHouse + 独立向量库”</strong>。
+      </div>
+
+      <h3>研发落地三阶段实施蓝图：</h3>
+      <div class="grid">
+        <div class="mini">
+          <h3>阶段一：筑基 (夯实内核 HTAP 列存仓能力)</h3>
+          <ul>
+            <li><strong>【数据库内核】：</strong>实现行存旁的内存列存 (IMCI，参考 PolarDB / Oracle In-Memory)。</li>
+            <li><strong>【内核流式管道】：</strong>内核后台线程流式解析 Redo Log，毫秒级将行存增量组织为列存 Block，实现物理零 ETL。</li>
+            <li><strong>【优化器智能分流】：</strong>CBO 优化器自动识别查询成本，OLTP 短查询走 B-Tree 索引，大聚合与复杂 Join 走 SIMD 向量化 AP 执行器。</li>
+            <li><strong>【强资源隔离】：</strong>CPU 核心与内存池物理划分，保障复杂的 AI/大数据分析跑满时核心交易 0 抖动。</li>
+          </ul>
+        </div>
+
+        <div class="mini">
+          <h3>阶段二：融入 AI 核心要素 (混合检索与外部推理代理)</h3>
+          <ul>
+            <li><strong>【数据库内核】：</strong>原生支持 <code>VECTOR(dim)</code> 类型与 HNSW 索引管理器，实现“标量过滤 + BM25 全文 + 向量”单条 SQL 多路召回。</li>
+            <li><strong>【新增外部服务】：</strong>开发同机 Sidecar / Daemon 形式的 <strong>AI 模型推理代理 (Model Gateway)</strong>，通过 UDS/共享内存与内核通信，执行 <code>AI_EMBED()</code> 与 <code>AI_PREDICT()</code>，防止外部网络/GPU 阻塞内核。</li>
+            <li><strong>【内核级安全穿透】：</strong>确保行级安全策略（RLS）和列脱敏在扫描算子层对向量检索完全生效。</li>
+          </ul>
+        </div>
+
+        <div class="mini">
+          <h3>阶段三：语义层与 Agent 原生生态 (商业化变现)</h3>
+          <ul>
+            <li><strong>【管控面平台】：</strong>开发 <strong>Semantic View 语义模型配置中心</strong>（指标公式、同义词声明），将 Text-to-SQL 准确率拉升至 90% 以上。</li>
+            <li><strong>【新增外部服务】：</strong>开发独立的 <strong>MCP Server 协议网关</strong>（Go/Node.js），暴露标准 MCP 接口供 Cursor、Claude Code、Dify 一键直连。</li>
+            <li><strong>【管控面/存储】：</strong>提供 Copy-on-Write 库级分支（Fork Database），为 Agent 提供秒级沙箱克隆与试错回滚能力。</li>
+          </ul>
+        </div>
+
+        <div class="mini">
+          <h3>商业化客户价值主张 (买点提炼)</h3>
+          <ul>
+            <li><strong>金融/政企客户：</strong>主打“数据不出库”与金融级审计合规，库内完成交易+风控+智能问答。</li>
+            <li><strong>中大型企业客户：</strong>主打“One Database for All”极简架构，替代 MySQL+Kafka+ClickHouse+Milvus，TCO 降低 50% 以上。</li>
+            <li><strong>Agent 创新企业：</strong>主打“事务一致性上下文引擎”，一个连接同时完成业务状态变更与知识检索。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: References -->
+    <section class="card">
+      <h2>五、参考资料与官方文档</h2>
       <ul>
         <li><a href="https://zhuanlan.zhihu.com/p/2055689544582817505" target="_blank">OceanBase 湖库一体，重新定义 AI 数据库 (知乎专栏)</a></li>
         <li><a href="https://www.oceanbase.com/solution/ai" target="_blank">OceanBase AI 数据库官方解决方案</a></li>
@@ -594,4 +615,4 @@ html_content = f"""<!doctype html>
 with open('/workspace/ob-lakebase-ai-report.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print("Report HTML with engineering boundaries updated successfully!")
+print("Report HTML successfully rebuilt with clean integrated diagrams!")

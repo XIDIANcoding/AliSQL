@@ -7,9 +7,8 @@ def render_drawio_svg(drawio_path):
     root = tree.getroot()
     cells = root.findall('.//mxCell')
     
-    # Check max bounds
     max_w = 1140
-    max_h = 720 if 'engineering' in drawio_path else 660
+    max_h = 670
     
     elems = []
     
@@ -44,7 +43,7 @@ def render_drawio_svg(drawio_path):
         
         elems.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="{fill}" stroke="{stroke}" stroke-width="1.8" />')
         elems.append(f'<path d="M {x} {y+10} A 10 10 0 0 1 {x+10} {y} L {x+w-10} {y} A 10 10 0 0 1 {x+w} {y+10} L {x+w} {y+30} L {x} {y+30} Z" fill="{stroke}" opacity="0.14" />')
-        elems.append(f'<text x="{x+18}" y="{y+20}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13" font-weight="700" fill="{stroke}">{html.escape(title)}</text>')
+        elems.append(f'<text x="{x+16}" y="{y+20}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="{stroke}">{html.escape(title)}</text>')
 
     # 2. Render children items, connectors, and banners
     for c in cells:
@@ -88,7 +87,9 @@ def render_drawio_svg(drawio_path):
         if is_arrow:
             elems.append(f'<path d="M {x} {y+h*0.25} L {x+w-18} {y+h*0.25} L {x+w-18} {y} L {x+w} {y+h*0.5} L {x+w-18} {y+h} L {x+w-18} {y+h*0.75} L {x} {y+h*0.75} Z" fill="{fill}" stroke="{stroke}" stroke-width="1.5" />')
             for idx, line in enumerate(lines):
-                elems.append(f'<text x="{x + (w-18)/2}" y="{y + 18 + idx*14}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#0f172a" text-anchor="middle">{html.escape(line)}</text>')
+                font_c = "#0f172a" if idx == 0 else "#334155"
+                font_w = "700" if idx <= 1 else "400"
+                elems.append(f'<text x="{x + (w-18)/2}" y="{y + 16 + idx*13.5}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="{font_w}" fill="{font_c}" text-anchor="middle">{html.escape(line)}</text>')
             continue
             
         if is_banner:
@@ -104,14 +105,26 @@ def render_drawio_svg(drawio_path):
         elems.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" fill="{fill}" stroke="{stroke}" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" />')
         
         total_lines = len(lines)
-        line_height = 15.5
-        start_y = y + (h - (total_lines * line_height)) / 2 + 12.5
+        line_height = 15
+        start_y = y + (h - (total_lines * line_height)) / 2 + 12
         
         for idx, line in enumerate(lines):
             is_title = (idx == 0)
-            weight = "700" if is_title else "400"
-            font_size = "11.5" if is_title else "10.5"
-            color = stroke if is_title and stroke not in ('#666666', '#94a3b8') else ("#0f172a" if is_title else "#475569")
+            is_tag = ('【' in line and '】' in line)
+            
+            if is_title:
+                font_size = "11.5"
+                weight = "700"
+                color = stroke if stroke not in ('#666666', '#94a3b8') else "#0f172a"
+            elif is_tag:
+                font_size = "10"
+                weight = "700"
+                color = "#d97706" if "外部" in line or "微服务" in line else ("#2563eb" if "内核" in line else "#059669")
+            else:
+                font_size = "10"
+                weight = "400"
+                color = "#475569"
+                
             elems.append(f'<text x="{x+w/2}" y="{start_y + idx*line_height}" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="{font_size}" font-weight="{weight}" fill="{color}" text-anchor="middle">{html.escape(line)}</text>')
 
     svg_code = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {max_w} {max_h}" width="100%" height="auto">
@@ -120,8 +133,7 @@ def render_drawio_svg(drawio_path):
     return svg_code
 
 files = ['oracle-26ai-architecture', 'databricks-agent-bricks-architecture', 
-         'snowflake-cortex-horizon-architecture', 'polardb-imci-ai-architecture',
-         'engineering-boundary-architecture']
+         'snowflake-cortex-horizon-architecture', 'polardb-imci-ai-architecture']
 
 for name in files:
     svg = render_drawio_svg(f'/workspace/diagrams/{name}.drawio')
