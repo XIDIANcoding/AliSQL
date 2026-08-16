@@ -1,609 +1,244 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AI 时代数据库湖库/库仓一体与 Agent 架构深度分析报告</title>
-  <style>
-    :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --blue: #0284c7;
-      --blue-dark: #0369a1;
-      --indigo: #4338ca;
-      --line: #e2e8f0;
-      --soft: #f0f9ff;
-      --warn: #fffbeb;
-      --tag-bg: #e0f2fe;
-      --tag-text: #0369a1;
-    }
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 时代数据库内核增强、库仓一体与 Agent 架构证据报告</title>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#475569;--line:#dbe4ef;
+--blue:#2563eb;--green:#16a34a;--cyan:#0891b2;--orange:#ea580c;--gray:#64748b}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);
+font:15px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.page{max-width:1220px;margin:auto;padding:32px 22px 60px}
+header{background:#0f172a;color:#fff;border-radius:18px;padding:38px 40px}
+h1{font-size:30px;margin:0 0 12px} header p{color:#cbd5e1;margin:6px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 32px;margin:22px 0}
+h2{font-size:22px;border-bottom:2px solid var(--line);padding-bottom:10px}
+h3{font-size:18px;color:#1e3a8a;margin-top:30px} h4{font-size:15px;margin:20px 0 8px}
+a{color:#0369a1;text-decoration:none} a:hover{text-decoration:underline}
+.ref{font-size:12px;font-weight:700;margin-left:2px}
+.fact{background:#eff6ff;border-left:4px solid var(--blue);padding:14px 18px;border-radius:8px}
+.warn{background:#fff7ed;border-left:4px solid var(--orange);padding:14px 18px;border-radius:8px}
+.evidence{background:#f0fdf4;border-left:4px solid var(--green);padding:14px 18px;border-radius:8px}
+.diagram{border:1px solid var(--line);border-radius:12px;padding:10px;margin:18px 0;background:#fff}
+.caption{font-size:13px;color:var(--muted);margin:8px 4px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 14px;background:#f1f5f9;border-radius:8px;font-size:12px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:16px 0}
+th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top} th{background:#f1f5f9;text-align:left}
+code{background:#f1f5f9;padding:1px 5px;border-radius:4px} li{margin:7px 0}
+.status{display:inline-block;font-size:11px;border-radius:999px;padding:2px 8px;font-weight:700}
+.ga{background:#dcfce7;color:#166534} .roadmap{background:#fef3c7;color:#92400e}
+.unknown{background:#e2e8f0;color:#334155} .sources li{font-size:13px}
+@media(max-width:760px){header,.card{padding:22px 17px}h1{font-size:24px}table{font-size:12px}}
+</style></head>
+<body><main class="page">
+<header>
+<h1>AI 时代数据库内核增强、库仓一体与 Agent 架构证据报告</h1>
+<p>重点厂商：Oracle 23ai/26ai、阿里云 PolarDB、OceanBase、Databricks</p>
+<p>原则：厂商事实只采用官方文档、官方产品页和官方客户案例；未披露的内部实现明确标注，不以推断代替事实。</p>
+</header>
 
-    * { box-sizing: border-box; }
+<section class="card">
+<h2>1. 先给结论：四家都在利用既有数据，但实现路径并不相同</h2>
+<table>
+<tr><th>厂商</th><th>既有数据在哪里</th><th>如何补 AP/仓</th><th>如何补 AI/Agent</th><th>关键区别</th></tr>
+<tr><td><strong>Oracle 26ai</strong></td><td>Oracle 行格式业务数据、外部 Iceberg</td>
+<td>数据库实例 SGA 内同时维护 Buffer Cache 行格式和 IM Column Store 列格式；优化器透明选择</td>
+<td>VECTOR/ONNX/Select AI Agent 在数据库能力体系内；Autonomous DB 提供托管 MCP</td>
+<td>最典型的“增强单一数据库内核”路线</td></tr>
+<tr><td><strong>PolarDB</strong></td><td>InnoDB 行存与 PolarDB 共享存储</td>
+<td>把 IMCI 做成 InnoDB 列存二级索引，在 RO/Standby 通过 Redo/物理复制维护</td>
+<td>专属 AI 节点或 Serverless 资源，通过 SQL 提供 MLOps、NL2SQL、Data-Agent</td>
+<td>内核 HTAP + 独立 AI 算力节点，资源隔离清晰</td></tr>
+<tr><td><strong>OceanBase</strong></td><td>OceanBase 事务数据；OSS/S3/HDFS 中外部数据</td>
+<td>现有 HTAP/混合行列能力；External Catalog 把 Iceberg/Hive/文件纳入 SQL；Lakebase 产品路线进一步强调对象存储和开放计算</td>
+<td>内核提供向量/全文/语义索引及 SQL AI 函数；模型 endpoint 在外部；上层有 Fork/上下文产品</td>
+<td>已发布能力与 Lakebase 方案路线必须分开看</td></tr>
+<tr><td><strong>Databricks</strong></td><td>Delta/Iceberg 湖数据和 Lakebase Postgres 数据</td>
+<td>LTAP 在 Lakebase 存储物化时把行式 Postgres 转码为 Parquet，让 Postgres 与 Lakehouse//RT 使用单一逻辑副本</td>
+<td>AI Search 是独立托管索引；Agent Bricks 是托管 Agent 服务；Unity Catalog/AI Gateway 统一治理</td>
+<td>从湖仓向 OLTP 扩展，不是把所有能力塞进一个数据库进程</td></tr>
+</table>
+<div class="warn"><strong>纠正此前报告中的不严谨表述：</strong>
+Oracle MCP 不是客户必须自建的 Sidecar；Oracle IM Column Store 的公开机制是数据库后台进程填充/重填，不应写成 Redo 直灌；
+PolarDB AI 节点是官方独立节点/Serverless 资源，不应笼统写成同机 Sidecar；
+OceanBase Lakebase 的部分内部进程边界尚未公开，不能自行判定全部位于数据库内核。</div>
+</section>
 
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-        "Microsoft YaHei", Arial, sans-serif;
-      line-height: 1.8;
-    }
+<section class="card">
+<h2>2. Oracle 23ai/26ai：真正以数据库内核为中心的“TP + AP + AI + 湖”</h2>
+<p>Oracle Database 26ai 是 23ai 的后续长期支持版本，官方说明可通过 2025 年 10 月 Release Update 从 23ai 过渡到 26ai。<a class="ref" href="https://www.oracle.com/database/ai-native-database-26ai/" target="_blank">[O0]</a></p>
+<div class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 620" width="100%" height="auto"><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#334155"/></marker></defs><rect width="1120" height="620" rx="14" fill="#fff" stroke="#e2e8f0"/><path d="M205.0,135 L205.0,172.5 L177.5,172.5 L177.5,210" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="191.25" y="168.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">生成/执行 SQL、调用 PL/SQL 工具</text><path d="M700,90.0 L700,90.0 L60,90.0 L60,90.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="380.0" y="86.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">暴露 Select AI Agent tools</text><path d="M1060,90.0 L1060,90.0 L60,90.0 L60,90.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="560.0" y="86.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">模型推理（按配置）</text><path d="M910.0,135 L910.0,172.5 L707.5,172.5 L707.5,210" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="808.75" y="168.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">Embedding：外部模型或本地 ONNX</text><path d="M295,262.5 L295,262.5 L325,262.5 L325,262.5" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="310.0" y="258.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">同一数据库对象：后台填充/重填列格式</text><path d="M295,262.5 L295,262.5 L590,262.5 L590,262.5" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="442.5" y="258.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">同 SQL 执行计划</text><path d="M442.5,315 L442.5,367.5 L210.0,367.5 L210.0,420" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="326.25" y="363.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">扫描/谓词下推</text><path d="M707.5,315 L707.5,367.5 L210.0,367.5 L210.0,420" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="458.75" y="363.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">距离计算与 Top-K 下推</text><path d="M720,467.5 L720,467.5 L780,467.5 L780,467.5" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="750.0" y="463.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">Iceberg/Catalog 解析</text><path d="M177.5,315 L177.5,367.5 L570.0,367.5 L570.0,420" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="373.75" y="363.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">SQL 原位关联查询</text><rect x="60" y="45" width="290" height="90" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="68" y="52" width="150" height="18" rx="9" fill="#16a34a"/><text x="76" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="205.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">Select AI Agent</text><text x="205.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">数据库内框架（DBMS_CLOUD_AI_AGENT）</text><text x="205.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">Planning / Tool / Reflection / Memory</text><text x="205.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O4]</text><rect x="410" y="45" width="290" height="90" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="418" y="52" width="150" height="18" rx="9" fill="#16a34a"/><text x="426" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="555.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">Autonomous AI Database MCP Server</text><text x="555.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">每数据库托管、多租户 MCP 服务</text><text x="555.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">无需客户另建 MCP 基础设施</text><text x="555.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O5]</text><rect x="760" y="45" width="300" height="90" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="768" y="52" width="150" height="18" rx="9" fill="#ea580c"/><text x="776" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="910.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">模型来源</text><text x="910.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">外部 LLM Provider（可选）</text><text x="910.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">或数据库内加载 ONNX Embedding</text><text x="910.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O4][O6]</text><rect x="60" y="210" width="235" height="105" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="68" y="217" width="150" height="18" rx="9" fill="#2563eb"/><text x="76" y="230" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="177.5" y="253" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">OLTP 行格式</text><text x="177.5" y="267" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">Buffer Cache / ACID / SQL</text><text x="177.5" y="281" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">适合点查与更新</text><text x="177.5" y="295" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O1]</text><rect x="325" y="210" width="235" height="105" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="333" y="217" width="150" height="18" rx="9" fill="#2563eb"/><text x="341" y="230" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="442.5" y="253" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">Database In-Memory</text><text x="442.5" y="267" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">SGA 内 IM Column Store</text><text x="442.5" y="281" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">后台 IMCO/SMCO/Wnnn 填充与重填</text><text x="442.5" y="295" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">不是外部 CDC</text><text x="442.5" y="309" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O1][O2]</text><rect x="590" y="210" width="235" height="105" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="598" y="217" width="150" height="18" rx="9" fill="#2563eb"/><text x="606" y="230" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="707.5" y="253" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">AI Vector Search</text><text x="707.5" y="267" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">VECTOR 类型 / 向量池 / 索引</text><text x="707.5" y="281" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">关系条件与向量检索同 SQL</text><text x="707.5" y="295" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O1][O3]</text><rect x="855" y="210" width="205" height="105" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="863" y="217" width="150" height="18" rx="9" fill="#2563eb"/><text x="871" y="230" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="957.5" y="253" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">Converged Engine</text><text x="957.5" y="267" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">JSON / Graph / Spatial / Relational</text><text x="957.5" y="281" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">统一安全与事务</text><text x="957.5" y="295" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O1]</text><rect x="60" y="420" width="300" height="95" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/><rect x="68" y="427" width="150" height="18" rx="9" fill="#64748b"/><text x="76" y="440" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">存储/Catalog/开放格式</text><text x="210.0" y="463" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#64748b">Exadata AI Smart Scan</text><text x="210.0" y="477" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">存储服务器执行距离计算与 Top-K</text><text x="210.0" y="491" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">减少网络与 DB Server 处理</text><text x="210.0" y="505" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O3]</text><rect x="420" y="420" width="300" height="95" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/><rect x="428" y="427" width="150" height="18" rx="9" fill="#64748b"/><text x="436" y="440" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">存储/Catalog/开放格式</text><text x="570.0" y="463" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#64748b">Autonomous AI Lakehouse</text><text x="570.0" y="477" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">外部 Apache Iceberg 表原位查询</text><text x="570.0" y="491" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">统一 Catalog / Data Lake Accelerator</text><text x="570.0" y="505" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O7]</text><rect x="780" y="420" width="280" height="95" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/><rect x="788" y="427" width="150" height="18" rx="9" fill="#64748b"/><text x="796" y="440" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">存储/Catalog/开放格式</text><text x="920.0" y="463" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#64748b">对象存储 / Iceberg 数据</text><text x="920.0" y="477" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">OCI / AWS / Azure / GCP</text><text x="920.0" y="491" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">开放数据保留在原位置</text><text x="920.0" y="505" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[O7]</text><rect x="60" y="575" width="12" height="12" rx="2" fill="#dbeafe" stroke="#2563eb"/><text x="77" y="585" font-size="9.5" font-family="system-ui" fill="#334155">数据库内核/数据库节点</text><rect x="265" y="575" width="12" height="12" rx="2" fill="#dcfce7" stroke="#16a34a"/><text x="282" y="585" font-size="9.5" font-family="system-ui" fill="#334155">管控面/托管控制服务</text><rect x="470" y="575" width="12" height="12" rx="2" fill="#cffafe" stroke="#0891b2"/><text x="487" y="585" font-size="9.5" font-family="system-ui" fill="#334155">复制/同步/转码路径</text><rect x="675" y="575" width="12" height="12" rx="2" fill="#ffedd5" stroke="#ea580c"/><text x="692" y="585" font-size="9.5" font-family="system-ui" fill="#334155">独立计算或托管服务</text><rect x="880" y="575" width="12" height="12" rx="2" fill="#f1f5f9" stroke="#64748b"/><text x="897" y="585" font-size="9.5" font-family="system-ui" fill="#334155">存储/Catalog/开放格式</text></svg></div>
+<p class="caption">图中 [O*] 与本报告参考资料一一对应；分类表示公开资料可确认的组件落点，不表示 Oracle 未公开的内部微服务拓扑。</p>
 
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 36px 24px 64px;
-    }
+<h3>2.1 通过什么方式把“仓”加进数据库</h3>
+<ul>
+<li><strong>双格式而非外部复制：</strong>同一数据库实例的 SGA 内，Buffer Cache 保存行格式，IM Column Store 保存列格式。Oracle 会把 OLTP 点查路由到行格式，把扫描、Join、聚合路由到列格式；同一查询还可同时读取两者。<a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/all_diagrams.html" target="_blank">[O1]</a> <a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/db_inmemoryarea.html" target="_blank">[O2]</a></li>
+<li><strong>列格式维护机制：</strong>DML 修改首先进入 Buffer Cache 和持久化路径；IMCO、SMCO、Wnnn 等数据库后台进程根据 metadata invalidation 与查询请求进行列存填充和重填。公开资料并未把它描述为外部 CDC 或客户部署的复制服务。<a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/all_diagrams.html" target="_blank">[O1]</a></li>
+<li><strong>AP 执行能力：</strong>IM Column Store 支持列式压缩、扫描和 SIMD/deep vectorization，因此是在数据库内核内部增强 AP，而不是另建一个数仓产品。<a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/db_inmemoryarea.html" target="_blank">[O2]</a></li>
+</ul>
 
-    header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%);
-      color: #fff;
-      padding: 48px 44px;
-      border-radius: 24px;
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
-      margin-bottom: 28px;
-    }
+<h3>2.2 AI 如何和既有业务数据结合</h3>
+<ul>
+<li><strong>内核数据类型和执行：</strong>AI Vector Search 与关系、JSON、Graph 等处于 converged database 体系；业务条件过滤和向量相似搜索可在同一数据库查询中完成。<a class="ref" href="https://www.oracle.com/database/ai-native-database-26ai/" target="_blank">[O0]</a> <a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/all_diagrams.html" target="_blank">[O1]</a></li>
+<li><strong>Embedding 两种路径：</strong>可以调用外部模型提供商，也可以把 ONNX embedding 模型加载到数据库并在数据库 CPU 上推理。官方反欺诈示例明确说明后者不需要第三方向量库或外部 embedding API。<a class="ref" href="https://blogs.oracle.com/database/building-an-autonomous-fraud-detection-pipeline-with-autonomous-ai-database" target="_blank">[O6]</a></li>
+<li><strong>Agent 不是泛泛的外部框架：</strong>Select AI Agent 由 <code>DBMS_CLOUD_AI_AGENT</code> 管理，包含 Planning、Tool Use、Reflection、Memory；工具可以是 NL2SQL、RAG、PL/SQL 或 REST。<a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/selai/select-ai-agent2.html" target="_blank">[O4]</a></li>
+<li><strong>MCP 部署边界：</strong>Autonomous AI Database 提供每数据库的托管、多租户 MCP Server，客户启用后获得 endpoint，无需自行部署 MCP 服务器基础设施。<a class="ref" href="https://docs.oracle.com/en/cloud/paas/autonomous-database/serverless/adbsb/mcp-server.html" target="_blank">[O5]</a></li>
+</ul>
 
-    header h1 {
-      margin: 0 0 14px;
-      font-size: 32px;
-      line-height: 1.3;
-      letter-spacing: -0.02em;
-    }
+<h3>2.3 如何把“湖”接进来</h3>
+<p>Autonomous AI Lakehouse 通过 Apache Iceberg 在数据原位置运行 Oracle SQL、Vector、Graph、Spatial 等能力，并由统一 Catalog 发现外部数据；Data Lake Accelerator 和缓存用于加速。这里是<strong>数据库计算能力访问开放湖表</strong>，不是把所有湖数据先复制进 Oracle。<a class="ref" href="https://www.oracle.com/autonomous-database/autonomous-ai-lakehouse/" target="_blank">[O7]</a></p>
 
-    header p {
-      margin: 6px 0;
-      color: rgba(255, 255, 255, 0.88);
-      font-size: 15px;
-    }
+<h3>2.4 已有客户证据</h3>
+<ul>
+<li><strong>Retraced：</strong>在原有 Autonomous Database 数据上使用 26ai Vector Search 和 Select AI；向量化供应商数据后，官方案例称重复记录减少 80%。<a class="ref" href="https://www.oracle.com/customers/retraced/" target="_blank">[O8]</a></li>
+<li><strong>Rappi：</strong>选择 Autonomous AI Database 与 AI Vector Search，把 AI 带到现有目录数据所在地，官方案例称搜索响应延迟降低 40%。<a class="ref" href="https://www.oracle.com/customers/rappi/" target="_blank">[O9]</a></li>
+</ul>
+</section>
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 32px 36px;
-      margin: 24px 0;
-      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
-    }
+<section class="card">
+<h2>3. 阿里云 PolarDB：内核 IMCI 做 HTAP，独立 AI 节点做 Data+AI</h2>
+<div class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 620" width="100%" height="auto"><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#334155"/></marker></defs><rect width="1120" height="620" rx="14" fill="#fff" stroke="#e2e8f0"/><path d="M335,92.5 L335,92.5 L410,92.5 L410,92.5" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="372.5" y="88.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">提交后复制 Redo</text><path d="M680,92.5 L680,92.5 L755,92.5 L755,92.5" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="717.5" y="88.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">后台构建/增量维护列存索引</text><path d="M210.0,325 L210.0,185.0 L197.5,185.0 L197.5,45" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="203.75" y="181.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">共享数据文件</text><path d="M210.0,325 L210.0,185.0 L907.5,185.0 L907.5,45" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="558.75" y="181.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">列存溢写/共享 I/O</text><path d="M210.0,515 L210.0,375.0 L560.0,375.0 L560.0,235" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="385.0" y="371.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">SQL 路由模型训练/推理</text><path d="M210.0,515 L210.0,375.0 L910.0,375.0 L910.0,235" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="560.0" y="371.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">按模式选择专属或 Serverless</text><path d="M560.0,325 L560.0,372.5 L570.0,372.5 L570.0,420" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="565.0" y="368.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">Embedding / LLM</text><path d="M907.5,140 L907.5,280.0 L570.0,280.0 L570.0,420" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="738.75" y="276.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">向量索引与检索</text><path d="M1060,467.5 L1060,467.5 L60,467.5 L60,467.5" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="560.0" y="463.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">自然语言请求</text><rect x="60" y="45" width="275" height="95" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="68" y="52" width="150" height="18" rx="9" fill="#2563eb"/><text x="76" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="197.5" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">RW 主节点 / InnoDB 行存</text><text x="197.5" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">OLTP 写入、事务与 Redo</text><text x="197.5" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">列存索引以 InnoDB Secondary Index 实现</text><text x="197.5" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P1][P2]</text><rect x="410" y="45" width="270" height="95" rx="10" fill="#cffafe" stroke="#0891b2" stroke-width="2"/><rect x="418" y="52" width="150" height="18" rx="9" fill="#0891b2"/><text x="426" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">复制/同步/转码路径</text><text x="545.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#0891b2">PolarDB 物理复制 / Redo 回放</text><text x="545.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">RO/Standby 节点从 Redo 重建与维护 IMCI</text><text x="545.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">不是 Kafka/Flink 外部 ETL</text><text x="545.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P1][P2][P3]</text><rect x="755" y="45" width="305" height="95" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="763" y="52" width="150" height="18" rx="9" fill="#2563eb"/><text x="771" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="907.5" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">RO AP 节点 / IMCI</text><text x="907.5" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">压缩列存：默认内存，不足时落共享存储</text><text x="907.5" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">行存串行/并行/IMCI 三路径成本选择</text><text x="907.5" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P1][P2]</text><rect x="60" y="235" width="300" height="90" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/><rect x="68" y="242" width="150" height="18" rx="9" fill="#64748b"/><text x="76" y="255" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">存储/Catalog/开放格式</text><text x="210.0" y="278" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#64748b">PolarDB 共享存储</text><text x="210.0" y="292" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">一写多读；IMCI 可部署 RW、专用 AP RO</text><text x="210.0" y="306" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">或独立 Standby，隔离级别不同</text><text x="210.0" y="320" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P1]</text><rect x="410" y="235" width="300" height="90" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="418" y="242" width="150" height="18" rx="9" fill="#ea580c"/><text x="426" y="255" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="560.0" y="278" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">PolarDB for AI 节点</text><text x="560.0" y="292" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">独立计费计算节点；可含 GPU</text><text x="560.0" y="306" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">隔离 AI/ML 训练与推理负载</text><text x="560.0" y="320" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P4][P5]</text><rect x="760" y="235" width="300" height="90" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="768" y="242" width="150" height="18" rx="9" fill="#ea580c"/><text x="776" y="255" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="910.0" y="278" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">PolarDB for AI Serverless / VNode</text><text x="910.0" y="292" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">Data-Agent 可选 Serverless 调用计费</text><text x="910.0" y="306" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">GPU VNode 以 Pod 调度到托管资源池</text><text x="910.0" y="320" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P5][P6]</text><rect x="60" y="420" width="300" height="95" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="68" y="427" width="150" height="18" rx="9" fill="#16a34a"/><text x="76" y="440" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="210.0" y="463" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">SQL / Data-Agent 接口</text><text x="210.0" y="477" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">PolarDB for AI 通过 SQL 提供 MLOps、</text><text x="210.0" y="491" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">NL2SQL、NL2Chart、Summary</text><text x="210.0" y="505" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P4][P6]</text><rect x="420" y="420" width="300" height="95" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="428" y="427" width="150" height="18" rx="9" fill="#2563eb"/><text x="436" y="440" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="570.0" y="463" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">IMCI 向量/RAG 数据路径</text><text x="570.0" y="477" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">列存节点构建向量索引并检索</text><text x="570.0" y="491" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">AI 节点提供向量化与 LLM 能力</text><text x="570.0" y="505" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P7]</text><rect x="780" y="420" width="280" height="95" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="788" y="427" width="150" height="18" rx="9" fill="#16a34a"/><text x="796" y="440" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="920.0" y="463" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">DMS + PolarDB for AI</text><text x="920.0" y="477" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">面向业务用户的自然语言分析入口</text><text x="920.0" y="491" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">雅迪 10万+ 销售、准确率超90%</text><text x="920.0" y="505" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[P8]</text><rect x="60" y="575" width="12" height="12" rx="2" fill="#dbeafe" stroke="#2563eb"/><text x="77" y="585" font-size="9.5" font-family="system-ui" fill="#334155">数据库内核/数据库节点</text><rect x="265" y="575" width="12" height="12" rx="2" fill="#dcfce7" stroke="#16a34a"/><text x="282" y="585" font-size="9.5" font-family="system-ui" fill="#334155">管控面/托管控制服务</text><rect x="470" y="575" width="12" height="12" rx="2" fill="#cffafe" stroke="#0891b2"/><text x="487" y="585" font-size="9.5" font-family="system-ui" fill="#334155">复制/同步/转码路径</text><rect x="675" y="575" width="12" height="12" rx="2" fill="#ffedd5" stroke="#ea580c"/><text x="692" y="585" font-size="9.5" font-family="system-ui" fill="#334155">独立计算或托管服务</text><rect x="880" y="575" width="12" height="12" rx="2" fill="#f1f5f9" stroke="#64748b"/><text x="897" y="585" font-size="9.5" font-family="system-ui" fill="#334155">存储/Catalog/开放格式</text></svg></div>
 
-    h2 {
-      color: #0f172a;
-      border-bottom: 2px solid var(--line);
-      padding-bottom: 12px;
-      margin-top: 4px;
-      font-size: 22px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+<h3>3.1 IMCI 不是旁挂数仓，而是 InnoDB 内的列存二级索引</h3>
+<ul>
+<li>PolarDB 没有选择实现一个完全分离的列存 Storage Engine，而是在 InnoDB 中实现 Columnar Secondary Index，以复用事务、Redo、物理复制和 MySQL 兼容性。<a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index" target="_blank">[P1]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/htap-based-real-time-data-analysis-in-polardb" target="_blank">[P2]</a></li>
+<li>列索引默认驻留 In-Memory Column Store Area，内存不足时可溢写到共享存储。优化器比较行存串行、行存并行和 IMCI 三条路径，选择成本最低者。<a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index" target="_blank">[P1]</a></li>
+<li>专用 IMCI RO 节点通过 Redo 和 PolarDB 物理复制在后台构建、恢复和维护列索引；AutoIndex 在 RW 节点只更新字典，真正的列索引构建发生在 RO IMCI 节点。<a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index" target="_blank">[P1]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/automatic-non-sense-speed-autoindex" target="_blank">[P3]</a></li>
+<li>部署可分三种隔离：RW 节点启用 IMCI、专用 AP 型 RO 节点、独立 Standby 节点。它们分别提供从无隔离到 CPU/内存隔离，再到 I/O 也隔离。<a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index" target="_blank">[P1]</a></li>
+</ul>
 
-    h3 {
-      color: #1e293b;
-      margin-top: 28px;
-      font-size: 17px;
-      border-left: 4px solid var(--blue);
-      padding-left: 12px;
-    }
+<h3>3.2 AI 为什么是独立节点，而不是塞进数据库主线程</h3>
+<ul>
+<li>PolarDB for AI 是集成到 PolarDB for MySQL 的分布式机器学习组件，通过 SQL 提供模型创建、训练、评估和推理。<a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/polardb-for-ai-nl2sql-commercialized" target="_blank">[P4]</a></li>
+<li>官方产品支持向集群增加专属 AI Node；数据、向量表等资源与节点生命周期相关。另有 Serverless 模式，Data-Agent 按 SQL 调用计费。<a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/enable-the-polardb-for-ai-feature" target="_blank">[P5]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/db-agent/" target="_blank">[P6]</a></li>
+<li>这意味着产品边界是：<strong>SQL 接口和路由与数据库集成，AI 算力由专属节点或 Serverless 资源承载</strong>，而不是未经证实的“数据库内核同步调用外部 Sidecar”。</li>
+<li>官方 RAG 架构明确：IMCI 列存节点负责向量索引，AI 节点负责文本向量化和 LLM，应用/Web 服务可在 ECS 等计算环境运行，OSS 保存知识文档。<a class="ref" href="https://help.aliyun.com/zh/polardb/polardb-for-mysql/building-a-retrieval-enhancement-rag-system-based-on-polardb-imci" target="_blank">[P7]</a></li>
+</ul>
 
-    h4 {
-      color: #334155;
-      margin: 18px 0 8px;
-      font-size: 15px;
-    }
+<h3>3.3 已有客户证据</h3>
+<p><strong>雅迪：</strong>DMS + PolarDB for AI 为云销通 App 提供 NL2SQL 和 RAG，超过 10 万销售人员可用自然语言查询批发、销售和库存，官方案例给出的查询准确率超过 90%。<a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/electric-vehicle-manufacturing-yadi-technology-group-co-ltd" target="_blank">[P8]</a></p>
+</section>
 
-    a { color: var(--blue); text-decoration: none; font-weight: 500; }
-    a:hover { text-decoration: underline; }
+<section class="card">
+<h2>4. OceanBase：现有内核能力、外部湖接入与 Lakebase 产品路线要分层理解</h2>
+<div class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 620" width="100%" height="auto"><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#334155"/></marker></defs><rect width="1120" height="620" rx="14" fill="#fff" stroke="#e2e8f0"/><path d="M360,95.0 L360,95.0 L420,95.0 L420,95.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="390.0" y="91.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">同 SQL 执行</text><path d="M720,95.0 L720,95.0 L780,95.0 L780,95.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="750.0" y="91.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">调用已注册模型 endpoint</text><path d="M360,295.0 L360,295.0 L420,295.0 L420,295.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="390.0" y="291.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">提供 schema/snapshot/manifest</text><path d="M720,295.0 L720,295.0 L780,295.0 L780,295.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="750.0" y="291.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">按元数据读取数据文件</text><path d="M210.0,145 L210.0,195.0 L570.0,195.0 L570.0,245" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="390.0" y="191.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">联邦/外部表查询</text><path d="M210.0,540 L210.0,392.5 L920.0,392.5 L920.0,245" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="565.0" y="388.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">开放格式访问</text><path d="M570.0,540 L570.0,292.5 L210.0,292.5 L210.0,45" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="390.0" y="288.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">数据库克隆与隔离控制</text><path d="M920.0,540 L920.0,292.5 L210.0,292.5 L210.0,45" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="565.0" y="288.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">结构化查询/混合检索</text><path d="M920.0,540 L920.0,292.5 L570.0,292.5 L570.0,45" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="745.0" y="288.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">Embedding/生成/Rerank</text><rect x="60" y="45" width="300" height="100" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="68" y="52" width="150" height="18" rx="9" fill="#2563eb"/><text x="76" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="210.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">OceanBase SQL / 事务 / HTAP 内核</text><text x="210.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">关系、JSON、全文、向量与混合搜索</text><text x="210.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">语义索引自动把 VARCHAR 转向量并建索引</text><text x="210.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B1][B2]</text><rect x="420" y="45" width="300" height="100" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="428" y="52" width="150" height="18" rx="9" fill="#2563eb"/><text x="436" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="570.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">AI 函数服务（SQL 表达式）</text><text x="570.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">AI_SPLIT_DOCUMENT / AI_EMBED /</text><text x="570.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">AI_COMPLETE / AI_RERANK</text><text x="570.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B2]</text><rect x="780" y="45" width="280" height="100" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="788" y="52" width="150" height="18" rx="9" fill="#ea580c"/><text x="796" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="920.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">第三方模型服务端点</text><text x="920.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">通过 DBMS_AI_SERVICE 注册模型和 endpoint</text><text x="920.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">需 API Key；具体模型服务在数据库外</text><text x="920.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B2][B3]</text><rect x="60" y="245" width="300" height="100" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="68" y="252" width="150" height="18" rx="9" fill="#16a34a"/><text x="76" y="265" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="210.0" y="288" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">External Catalog</text><text x="210.0" y="302" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">HMS / Iceberg REST / FILESYSTEM / ODPS</text><text x="210.0" y="316" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">读取表定义、snapshot、manifest</text><text x="210.0" y="330" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B4][B5]</text><rect x="420" y="245" width="300" height="100" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="428" y="252" width="150" height="18" rx="9" fill="#2563eb"/><text x="436" y="265" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="570.0" y="288" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">OceanBase 外部表/目录访问层</text><text x="570.0" y="302" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">解析 Parquet/ORC/CSV 与 Iceberg 元数据</text><text x="570.0" y="316" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">纳入 OceanBase SQL 查询</text><text x="570.0" y="330" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B4][B5]</text><rect x="780" y="245" width="280" height="100" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/><rect x="788" y="252" width="150" height="18" rx="9" fill="#64748b"/><text x="796" y="265" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">存储/Catalog/开放格式</text><text x="920.0" y="288" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#64748b">外部湖存储</text><text x="920.0" y="302" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">OSS / S3 / HDFS + Parquet/Iceberg</text><text x="920.0" y="316" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">当前文档：External Catalog 以只读为主</text><text x="920.0" y="330" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B4][B5]</text><rect x="60" y="445" width="300" height="95" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="68" y="452" width="150" height="18" rx="9" fill="#ea580c"/><text x="76" y="465" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="210.0" y="488" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">开放计算引擎</text><text x="210.0" y="502" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">Spark / Ray（官方产品路线）</text><text x="210.0" y="516" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">通过开放格式/Catalog 或连接器协作</text><text x="210.0" y="530" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B1][B6]</text><rect x="420" y="445" width="300" height="95" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="428" y="452" width="150" height="18" rx="9" fill="#16a34a"/><text x="436" y="465" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="570.0" y="488" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">Fork Database / Agent 沙箱</text><text x="570.0" y="502" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">官方方案页声明：克隆、隔离、Diff/回滚</text><text x="570.0" y="516" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">内部进程与实现细节未公开</text><text x="570.0" y="530" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B1]</text><rect x="780" y="445" width="280" height="95" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="788" y="452" width="150" height="18" rx="9" fill="#16a34a"/><text x="796" y="465" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="920.0" y="488" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">上下文/应用层</text><text x="920.0" y="502" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">PowerMem / DataPilot / Agent 应用</text><text x="920.0" y="516" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">属于产品与服务层，不等同数据库内核</text><text x="920.0" y="530" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[B1]</text><rect x="60" y="575" width="12" height="12" rx="2" fill="#dbeafe" stroke="#2563eb"/><text x="77" y="585" font-size="9.5" font-family="system-ui" fill="#334155">数据库内核/数据库节点</text><rect x="265" y="575" width="12" height="12" rx="2" fill="#dcfce7" stroke="#16a34a"/><text x="282" y="585" font-size="9.5" font-family="system-ui" fill="#334155">管控面/托管控制服务</text><rect x="470" y="575" width="12" height="12" rx="2" fill="#cffafe" stroke="#0891b2"/><text x="487" y="585" font-size="9.5" font-family="system-ui" fill="#334155">复制/同步/转码路径</text><rect x="675" y="575" width="12" height="12" rx="2" fill="#ffedd5" stroke="#ea580c"/><text x="692" y="585" font-size="9.5" font-family="system-ui" fill="#334155">独立计算或托管服务</text><rect x="880" y="575" width="12" height="12" rx="2" fill="#f1f5f9" stroke="#64748b"/><text x="897" y="585" font-size="9.5" font-family="system-ui" fill="#334155">存储/Catalog/开放格式</text></svg></div>
 
-    .summary {
-      background: var(--soft);
-      border-left: 5px solid var(--blue);
-      padding: 18px 22px;
-      border-radius: 12px;
-      margin: 20px 0;
-    }
+<h3>4.1 已有官方文档可直接证明的数据库能力</h3>
+<ul>
+<li><strong>SQL AI 函数：</strong><code>AI_SPLIT_DOCUMENT</code>、<code>AI_EMBED</code>、<code>AI_COMPLETE</code>、<code>AI_RERANK</code> 以 SQL 表达式进入数据处理；模型和 endpoint 由 <code>DBMS_AI_SERVICE</code> 注册和监控。<a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682097" target="_blank">[B2]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682098" target="_blank">[B3]</a></li>
+<li><strong>模型在哪里：</strong>官方文档要求注册第三方模型服务 endpoint 和 API Key，因此“SQL 函数在 OceanBase，模型推理服务可在数据库外”是有证据的边界。<a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682098" target="_blank">[B3]</a></li>
+<li><strong>语义索引：</strong>用户可直接在 VARCHAR 列创建语义索引，OceanBase 自动 embedding 并建立向量索引；查询时也可输入原始文本。<a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682088" target="_blank">[B7]</a></li>
+<li><strong>湖数据访问：</strong>OceanBase 通过 External Catalog 连接 HMS、Iceberg REST、FILESYSTEM、ODPS 等 Catalog，获取 <code>metadata.json</code>、snapshot、manifest 后读取 OSS/S3/HDFS 中的数据文件。<a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326202" target="_blank">[B4]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326199" target="_blank">[B5]</a></li>
+<li><strong>重要限制：</strong>当前官方文档明确 External Catalog/湖表访问“以只读为主”，写入能力依版本和 Catalog 类型而异。因此不能把今天的所有能力直接描述成完整双向共享写。<a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326202" target="_blank">[B4]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326199" target="_blank">[B5]</a></li>
+</ul>
 
-    .note {
-      background: var(--warn);
-      border-left: 5px solid #f59e0b;
-      padding: 18px 22px;
-      border-radius: 12px;
-      margin: 20px 0;
-    }
+<h3>4.2 Lakebase 方案页声明的演进方向</h3>
+<p>官方方案页把未来形态描述为 S3 兼容对象存储 + Iceberg + 统一 Catalog，并接入 Spark、Ray；同时声明多模表、AI 列、混合搜索、Fork Database 和 Agent 上下文能力。<a class="ref" href="https://www.oceanbase.com/solution/ai" target="_blank">[B1]</a></p>
+<div class="warn"><strong>证据边界：</strong>方案页说明了能力目标，但没有完整公开多模表、AI 列、Fork Database、统一 Catalog 的进程拓扑、事务协议和跨引擎写入冲突处理。因此本报告不再把这些组件武断标为“全部在内核”或指定为某种 Sidecar；图中按“数据库能力、管控/产品层、开放计算服务、外部存储”标注，并明确未披露部分。</div>
 
-    .legend-box {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      background: #f1f5f9;
-      padding: 10px 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      font-size: 12px;
-      align-items: center;
-    }
+<h3>4.3 既有数据如何被利用</h3>
+<ul>
+<li>交易数据继续由 OceanBase SQL/事务/HTAP 内核承载；向量、全文和关系过滤进入统一查询路径。<a class="ref" href="https://www.oceanbase.com/solution/ai" target="_blank">[B1]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682088" target="_blank">[B7]</a></li>
+<li>外部湖数据通过 External Catalog 纳入 SQL，而不是强制先复制到数据库。<a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326202" target="_blank">[B4]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326199" target="_blank">[B5]</a></li>
+<li>Spark 可通过 Catalog/Connector 与 OceanBase 协作；官方最佳实践证明 Spark Catalog 与 OceanBase 的元数据映射和并行读写能力，但这和“Spark 直接共享 OceanBase 内核页格式”不是同一件事。<a class="ref" href="https://www.oceanbase.com/docs/common-best-practices-1000000002808478" target="_blank">[B6]</a></li>
+</ul>
 
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+<h3>4.4 官方客户案例</h3>
+<p>OceanBase 方案页列出蚂蚁阿福、灵光、中国联通、货拉拉等：阿福使用 Fork Database 沙箱，灵光使用逻辑表支撑大量轻应用，中国联通和货拉拉用于 RAG/向量与架构简化。这里的效果数字来源均为 OceanBase 方案页自身披露。<a class="ref" href="https://www.oceanbase.com/solution/ai" target="_blank">[B1]</a></p>
+</section>
 
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-    }
+<section class="card">
+<h2>5. Databricks：从湖仓补 OLTP，LTAP 与 Agent/AI Search 是两条不同的数据路径</h2>
+<div class="diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 620" width="100%" height="auto"><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#334155"/></marker></defs><rect width="1120" height="620" rx="14" fill="#fff" stroke="#e2e8f0"/><path d="M345,95.0 L345,95.0 L405,95.0 L405,95.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="375.0" y="91.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">WAL/页面持久化</text><path d="M705,95.0 L705,95.0 L765,95.0 L765,95.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="735.0" y="91.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">存储物化时转码</text><path d="M912.5,145 L912.5,197.5 L555.0,197.5 L555.0,250" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="733.75" y="193.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">Parquet + Delta/Iceberg</text><path d="M705,300.0 L705,300.0 L60,300.0 L60,300.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="382.5" y="296.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">直接分析单一逻辑副本</text><path d="M1060,300.0 L1060,300.0 L60,300.0 L60,300.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="560.0" y="296.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">治理分析访问</text><path d="M912.5,350 L912.5,402.5 L555.0,402.5 L555.0,455" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="733.75" y="398.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">身份/权限/工具治理</text><path d="M555.0,350 L555.0,402.5 L202.5,402.5 L202.5,455" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="378.75" y="398.5" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">Delta Sync 派生搜索索引</text><path d="M345,505.0 L345,505.0 L405,505.0 L405,505.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="375.0" y="501.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">检索工具</text><path d="M705,505.0 L705,505.0 L765,505.0 L765,505.0" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/><text x="735.0" y="501.0" text-anchor="middle" font-size="9" font-family="system-ui" fill="#334155">部署与调用</text><rect x="60" y="45" width="285" height="100" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="68" y="52" width="150" height="18" rx="9" fill="#2563eb"/><text x="76" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="202.5" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">Lakebase Postgres Compute</text><text x="202.5" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">无状态标准 Postgres 计算层</text><text x="202.5" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">仅持有 shared buffers 与本地缓存</text><text x="202.5" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D1][D2]</text><rect x="405" y="45" width="300" height="100" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/><rect x="413" y="52" width="150" height="18" rx="9" fill="#64748b"/><text x="421" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">存储/Catalog/开放格式</text><text x="555.0" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#64748b">Lakebase Durable Storage</text><text x="555.0" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">Safekeepers + Pageservers + Cloud Object Storage</text><text x="555.0" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">提交持久化，计算与存储分离</text><text x="555.0" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D1][D2]</text><rect x="765" y="45" width="295" height="100" rx="10" fill="#cffafe" stroke="#0891b2" stroke-width="2"/><rect x="773" y="52" width="150" height="18" rx="9" fill="#0891b2"/><text x="781" y="65" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">复制/同步/转码路径</text><text x="912.5" y="88" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#0891b2">LTAP Storage Transcoding</text><text x="912.5" y="102" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">行式 Postgres 数据落湖时转为 Parquet 列式</text><text x="912.5" y="116" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">不是外部 CDC/复制管道</text><text x="912.5" y="130" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D3]</text><rect x="60" y="250" width="285" height="100" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="68" y="257" width="150" height="18" rx="9" fill="#2563eb"/><text x="76" y="270" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">数据库内核/数据库节点</text><text x="202.5" y="293" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#2563eb">Lakehouse//RT / OLAP Engine</text><text x="202.5" y="307" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">直接查询 live Lakebase 当前状态</text><text x="202.5" y="321" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">与 Postgres 各用专门引擎</text><text x="202.5" y="335" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D3]</text><rect x="405" y="250" width="300" height="100" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/><rect x="413" y="257" width="150" height="18" rx="9" fill="#64748b"/><text x="421" y="270" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">存储/Catalog/开放格式</text><text x="555.0" y="293" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#64748b">单一逻辑副本 / 开放格式</text><text x="555.0" y="307" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">对象存储中的 Parquet，通过 Delta/Iceberg 读取</text><text x="555.0" y="321" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">OLTP 与 OLAP 共用存储基础</text><text x="555.0" y="335" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D3]</text><rect x="765" y="250" width="295" height="100" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><rect x="773" y="257" width="150" height="18" rx="9" fill="#16a34a"/><text x="781" y="270" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">管控面/托管控制服务</text><text x="912.5" y="293" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#16a34a">Unity Catalog / Unity AI Gateway</text><text x="912.5" y="307" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">权限、血缘、审计；模型/Agent/MCP/工具</text><text x="912.5" y="321" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">统一作为 securable objects 管理</text><text x="912.5" y="335" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D4][D5]</text><rect x="60" y="455" width="285" height="100" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="68" y="462" width="150" height="18" rx="9" fill="#ea580c"/><text x="76" y="475" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="202.5" y="498" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">Databricks AI Search</text><text x="202.5" y="512" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">独立托管 Serverless 搜索服务</text><text x="202.5" y="526" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">Delta Sync index 自动同步源 Delta Table</text><text x="202.5" y="540" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D6]</text><rect x="405" y="455" width="300" height="100" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="413" y="462" width="150" height="18" rx="9" fill="#ea580c"/><text x="421" y="475" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="555.0" y="498" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">Agent Bricks / Supervisor Agent</text><text x="555.0" y="512" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">托管 Agent 运行时；协调 Genie、AI Search、</text><text x="555.0" y="526" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">UC Functions、MCP 与自定义 Agent</text><text x="555.0" y="540" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D5][D7]</text><rect x="765" y="455" width="295" height="100" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/><rect x="773" y="462" width="150" height="18" rx="9" fill="#ea580c"/><text x="781" y="475" font-size="10" font-weight="700" font-family="system-ui" fill="#fff">独立计算或托管服务</text><text x="912.5" y="498" text-anchor="middle" font-size="11" font-weight="700" font-family="system-ui" fill="#ea580c">Databricks Apps / Model Serving</text><text x="912.5" y="512" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">应用与 Agent 服务部署入口</text><text x="912.5" y="526" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">FinThrive 在数小时内上线多 Agent 助手</text><text x="912.5" y="540" text-anchor="middle" font-size="9.5" font-weight="400" font-family="system-ui" fill="#334155">[D8]</text><rect x="60" y="575" width="12" height="12" rx="2" fill="#dbeafe" stroke="#2563eb"/><text x="77" y="585" font-size="9.5" font-family="system-ui" fill="#334155">数据库内核/数据库节点</text><rect x="265" y="575" width="12" height="12" rx="2" fill="#dcfce7" stroke="#16a34a"/><text x="282" y="585" font-size="9.5" font-family="system-ui" fill="#334155">管控面/托管控制服务</text><rect x="470" y="575" width="12" height="12" rx="2" fill="#cffafe" stroke="#0891b2"/><text x="487" y="585" font-size="9.5" font-family="system-ui" fill="#334155">复制/同步/转码路径</text><rect x="675" y="575" width="12" height="12" rx="2" fill="#ffedd5" stroke="#ea580c"/><text x="692" y="585" font-size="9.5" font-family="system-ui" fill="#334155">独立计算或托管服务</text><rect x="880" y="575" width="12" height="12" rx="2" fill="#f1f5f9" stroke="#64748b"/><text x="897" y="585" font-size="9.5" font-family="system-ui" fill="#334155">存储/Catalog/开放格式</text></svg></div>
 
-    .tags { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
-    .tag {
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 12.5px;
-    }
+<h3>5.1 Lakebase 存储架构</h3>
+<ul>
+<li>Lakebase 把标准、无状态 Postgres compute 与 durable storage 分开；存储由 safekeepers、pageservers 和云对象存储组成。Compute 只保留 shared buffers 和本地缓存，不拥有持久数据。<a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/architecture" target="_blank">[D1]</a> <a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/storage-architecture" target="_blank">[D2]</a></li>
+<li>这一设计支持 scale-to-zero、instant branches、read replicas 和 failover；分支使用共享存储上的 Copy-on-Write。<a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/architecture" target="_blank">[D1]</a> <a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/storage-architecture" target="_blank">[D2]</a></li>
+</ul>
 
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 20px 0;
-      font-size: 13.5px;
-      background: #fff;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-    }
+<h3>5.2 LTAP 如何消除 OLTP 到 OLAP 的外部复制</h3>
+<ul>
+<li>当 Lakebase 存储把数据物化到对象存储时，LTAP 增加存储层转码步骤，将行式 Postgres 数据转为 Parquet 列式布局，并通过 Delta/Iceberg 暴露。<a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/ltap-overview" target="_blank">[D3]</a></li>
+<li>Postgres 处理事务，Lakehouse//RT 处理分析；两者读取一个开放存储中的单一逻辑副本。官方明确称这消除了传统外部 CDC、复制和转换管道。<a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/ltap-overview" target="_blank">[D3]</a></li>
+<li>Lakebase Change Data Feed 是同一底层数据的变更流表示，用于下游管道和审计；它不是 LTAP 要消除的外部 CDC。<a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/ltap-overview" target="_blank">[D3]</a></li>
+</ul>
 
-    th, td {
-      border: 1px solid var(--line);
-      padding: 12px 14px;
-      vertical-align: top;
-    }
+<h3>5.3 AI Search 和 Agent Bricks 不属于数据库内核</h3>
+<ul>
+<li><strong>AI Search：</strong>从 Delta Table 创建 Delta Sync index，自动跟随源表变更；它是受 Unity Catalog 治理的托管 Serverless 搜索服务，而不是 Lakebase Postgres 内核中的索引。<a class="ref" href="https://docs.databricks.com/aws/en/ai-search/ai-search" target="_blank">[D6]</a></li>
+<li><strong>Agent Bricks：</strong>Supervisor Agent 协调 Genie、AI Search、UC Functions、MCP 和自定义 Agent；需要 Unity Catalog 和 Serverless compute。<a class="ref" href="https://docs.databricks.com/aws/en/agents/custom-agents/build-agents" target="_blank">[D5]</a> <a class="ref" href="https://docs.databricks.com/aws/en/agents/agent-bricks/multi-agent-supervisor" target="_blank">[D7]</a></li>
+<li><strong>Unity AI Gateway：</strong>属于控制面，统一治理模型、Agent、MCP Server、工具和运行时请求，Agent 通过 on-behalf-of identity 继承用户权限。<a class="ref" href="https://docs.databricks.com/aws/en/ai-gateway/" target="_blank">[D4]</a></li>
+</ul>
 
-    th {
-      background: #f1f5f9;
-      color: #1e293b;
-      text-align: left;
-      font-weight: 700;
-    }
+<h3>5.4 已有客户证据</h3>
+<p><strong>FinThrive：</strong>在既有 Databricks 平台、Notebook、代码库和文档上，通过 Unity Catalog 暴露资产，用 Agent Bricks 构建多个知识 Agent 并由 Supervisor 统一编排；官方案例称数小时内上线了可查询管道的助手。<a class="ref" href="https://www.databricks.com/customers/finthrive/agent-bricks" target="_blank">[D8]</a></p>
+</section>
 
-    ul { padding-left: 24px; }
-    li { margin: 8px 0; }
+<section class="card">
+<h2>6. 对自研数据库的可执行映射：哪些必须进内核，哪些应独立部署</h2>
+<table>
+<tr><th>目标</th><th>建议落点</th><th>研发工作</th><th>参考证据</th></tr>
+<tr><td>利用现有 TP 数据直接做 AP</td><td><strong>数据库内核</strong></td>
+<td>列存格式/列索引、向量化执行器、CBO 行列路径选择、资源隔离</td>
+<td>Oracle IMCS；PolarDB IMCI <a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/all_diagrams.html" target="_blank">[O1]</a> <a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/db_inmemoryarea.html" target="_blank">[O2]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index" target="_blank">[P1]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/htap-based-real-time-data-analysis-in-polardb" target="_blank">[P2]</a></td></tr>
+<tr><td>保持行列实时一致</td><td><strong>内核后台进程或数据库复制层</strong></td>
+<td>选择 Oracle 式后台填充/失效重填，或 PolarDB 式 Redo/物理复制到 RO 列存节点；不要默认引入 Kafka/Flink</td>
+<td><a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/all_diagrams.html" target="_blank">[O1]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index" target="_blank">[P1]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/automatic-non-sense-speed-autoindex" target="_blank">[P3]</a></td></tr>
+<tr><td>向量与业务条件统一查询</td><td><strong>数据库内核</strong></td>
+<td>VECTOR 类型、距离算子、ANN 索引、标量过滤与向量路径的优化器整合、RLS 一致执行</td>
+<td><a class="ref" href="https://www.oracle.com/database/ai-native-database-26ai/" target="_blank">[O0]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682088" target="_blank">[B7]</a></td></tr>
+<tr><td>Embedding/LLM 推理</td><td><strong>可插拔：库内轻量模型 + 独立 AI 节点/Serverless</strong></td>
+<td>轻量 ONNX 可库内；大型模型、GPU、弹性任务放独立 AI Node/服务；SQL 保持统一入口</td>
+<td>Oracle local ONNX；PolarDB AI nodes <a class="ref" href="https://blogs.oracle.com/database/building-an-autonomous-fraud-detection-pipeline-with-autonomous-ai-database" target="_blank">[O6]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/polardb-for-ai-nl2sql-commercialized" target="_blank">[P4]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/enable-the-polardb-for-ai-feature" target="_blank">[P5]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/db-agent/" target="_blank">[P6]</a></td></tr>
+<tr><td>自然语言分析与 Agent</td><td><strong>托管服务/管控面</strong></td>
+<td>NL2SQL、Agent 编排、评测、Tracing、模型路由；只把确定性 SQL/工具执行落到内核</td>
+<td>Oracle Select AI；PolarDB Data-Agent；Databricks Agent Bricks <a class="ref" href="https://docs.oracle.com/en/database/oracle/oracle-database/26/selai/select-ai-agent2.html" target="_blank">[O4]</a> <a class="ref" href="https://help.aliyun.com/en/polardb/polardb-for-mysql/db-agent/" target="_blank">[P6]</a> <a class="ref" href="https://docs.databricks.com/aws/en/agents/custom-agents/build-agents" target="_blank">[D5]</a> <a class="ref" href="https://docs.databricks.com/aws/en/agents/agent-bricks/multi-agent-supervisor" target="_blank">[D7]</a></td></tr>
+<tr><td>湖数据接入</td><td><strong>Catalog + Connector + 对象存储</strong></td>
+<td>Iceberg REST/HMS、Parquet reader、谓词下推、权限凭据；先支持只读原位查询，再谨慎扩展一致写</td>
+<td><a class="ref" href="https://www.oracle.com/autonomous-database/autonomous-ai-lakehouse/" target="_blank">[O7]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326202" target="_blank">[B4]</a> <a class="ref" href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326199" target="_blank">[B5]</a> <a class="ref" href="https://docs.databricks.com/aws/en/oltp/projects/ltap-overview" target="_blank">[D3]</a></td></tr>
+</table>
+<div class="evidence"><strong>推荐产品结构：</strong>
+内核产品负责 TP、列存 AP、向量/全文和统一 SQL；复制层负责行列增量维护；AI Node/Serverless 负责模型算力；
+控制面负责语义模型、Agent、权限与审计；湖连接层负责 Iceberg/Catalog。这样既保持“数据库是核心”，又避免把不确定、长延迟、GPU 密集型逻辑塞进核心事务进程。</div>
+</section>
 
-    .diagram-container {
-      margin: 24px 0;
-      padding: 16px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    }
-
-    .diagram-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #475569;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
-
-    .mini {
-      border: 1px solid var(--line);
-      background: #f8fafc;
-      border-radius: 14px;
-      padding: 18px 20px;
-    }
-
-    .mini h3 {
-      margin-top: 0;
-      border-left: none;
-      padding-left: 0;
-      color: #0369a1;
-    }
-
-    footer {
-      color: var(--muted);
-      font-size: 13px;
-      text-align: center;
-      margin-top: 36px;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-size: 11.5px;
-      font-weight: 600;
-      background: var(--tag-bg);
-      color: var(--tag-text);
-      margin-right: 6px;
-    }
-
-    @media (max-width: 800px) {
-      header { padding: 32px 24px; border-radius: 18px; }
-      header h1 { font-size: 24px; }
-      .card { padding: 22px 18px; }
-      .grid { grid-template-columns: 1fr; }
-      table { font-size: 12.5px; }
-    }
-  </style>
-</head>
-<body>
-  <main class="page">
-    <header>
-      <h1>AI 时代数据库湖库/库仓一体与 Agent 架构深度分析报告</h1>
-      <p><strong>报告日期：</strong>2026-08-16</p>
-      <p><strong>分析核心：</strong>OceanBase 湖库一体、Databricks (Mosaic AI / Agent Bricks)、Oracle 26ai (Autonomous Lakehouse)、Snowflake (Cortex / Horizon)、阿里云 PolarDB (IMCI / Lakebase) 等各大主流厂商具体架构设计、<strong>组件物理落点（内核/管控面/复制管道/外部微服务）</strong>、层间配合数据流与落地客户案例深度拆解。</p>
-      <div class="tags">
-        <span class="tag">库仓一体</span>
-        <span class="tag">湖库一体</span>
-        <span class="tag">内核改动标注</span>
-        <span class="tag">外部服务部署</span>
-        <span class="tag">Database-First</span>
-        <span class="tag">Agent Bricks</span>
-        <span class="tag">IMCI 列存</span>
-        <span class="tag">零 ETL</span>
-      </div>
-    </header>
-
-    <!-- SECTION 1: Strategic Vision -->
-    <section class="card">
-      <h2>一、战略共识：利用既有数据，增强内核做“库仓一体+AI”</h2>
-      <div class="summary">
-        <p>
-          <strong>行业演进本质：</strong>当前主流数据库厂商、数仓与湖仓平台（如 Oracle、Databricks、Snowflake、OceanBase、阿里云 PolarDB 等）正在不约而同地走向同一终局——<strong>统一数据底座（Unified Data Foundation）</strong>。
-        </p>
-        <p>
-          你们作为自研数据库团队，所选定的战略路线（<strong>“增强数据库内核，走库仓一体，利用既有数据优势，引入列存仓与 AI 大数据分析能力”</strong>），不仅与 OceanBase 的底层逻辑完全一致，也是数据库龙头 <strong>Oracle（23ai/26ai）</strong> 与 <strong>阿里云 PolarDB</strong> 最核心的成功路径。
-        </p>
-        <p>
-          <strong>核心护城河：</strong>企业最核心、最具价值的业务数据已经在你们的 TP 数据库中。<strong>“计算与模型向既有数据靠近”</strong> 的效率，永远远高于将数百 TB 数据通过繁重的 CDC/ETL 管道搬运到外围系统。
-        </p>
-      </div>
-    </section>
-
-    <!-- SECTION 2: Vendor In-depth with Component Placement -->
-    <section class="card">
-      <h2>二、各大厂商架构设计、层间配合与【组件物理落点】标注剖析</h2>
-      
-      <div class="legend-box">
-        <strong>架构图组件物理落点与改造分类图例：</strong>
-        <span class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span><strong>【数据库内核代码】</strong>：直接修改 C++/Rust 数据面进程（事务/存储/列存/向量/执行器）</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#059669;"></span><strong>【管控面 / 控制台】</strong>：独立 Web 管理平台 / 元数据库（语义配置/沙箱管理/安全策略）</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#d97706;"></span><strong>【新增外部服务 / 容器化】</strong>：解耦大模型调用、MCP 网关、Worker 进程（K8s/微服务独立部署）</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span><strong>【复制与同步管道】</strong>：内核后台流式线程 / Redo Log 解析（实现物理零 ETL）</span>
-      </div>
-
-      <!-- 1. Oracle -->
-      <h3>1. Oracle (Oracle AI Database 26ai &amp; Autonomous AI Lakehouse)</h3>
-      <p>
-        <span class="badge">技术流派</span><strong>传统数据库内核扩展派（Database-First）</strong><br />
-        Oracle 26ai 将事务、列存 AP、向量检索与库内模型推理高度内聚在同一 C++ 数据库内核进程中，上层通过 PL/SQL 与管控面提供 Select AI Agent 编排，底层结合 Exadata 硬件实现算子下推。
-      </p>
-
-      <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】Oracle 26ai Autonomous AI Lakehouse 三层协同与组件落点 (draw.io 绘制)</div>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 670" width="100%" height="auto">
-      <rect x="0" y="0" width="1140" height="670" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" /><rect x="50.0" y="30.0" width="1040.0" height="135.0" rx="10" fill="#e1f5fe" stroke="#0288d1" stroke-width="1.8" /><path d="M 50.0 40.0 A 10 10 0 0 1 60.0 30.0 L 1080.0 30.0 A 10 10 0 0 1 1090.0 40.0 L 1090.0 60.0 L 50.0 60.0 Z" fill="#0288d1" opacity="0.14" /><text x="66.0" y="50.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#0288d1">1. 智能交互与 Agent 编排层 (Select AI Agent Framework)  【落点：管控面微服务 + 库内 PL/SQL 运行时】</text><rect x="50.0" y="240.0" width="1040.0" height="155.0" rx="10" fill="#ede7f6" stroke="#512da8" stroke-width="1.8" /><path d="M 50.0 250.0 A 10 10 0 0 1 60.0 240.0 L 1080.0 240.0 A 10 10 0 0 1 1090.0 250.0 L 1090.0 270.0 L 50.0 270.0 Z" fill="#512da8" opacity="0.14" /><text x="66.0" y="260.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#512da8">2. 统一多模 SQL 计算引擎层 (Oracle AI Database 26ai Converged Engine)  【落点：数据库内核 C++ 核心进程】</text><rect x="50.0" y="470.0" width="1040.0" height="155.0" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.8" /><path d="M 50.0 480.0 A 10 10 0 0 1 60.0 470.0 L 1080.0 470.0 A 10 10 0 0 1 1090.0 480.0 L 1090.0 500.0 L 50.0 500.0 Z" fill="#2e7d32" opacity="0.14" /><text x="66.0" y="490.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#2e7d32">3. 智能存储与开放湖仓加速层 (Exadata AI Storage &amp; Autonomous Lakehouse)  【落点：底层存储节点 + 湖仓连接器】</text><rect x="75.0" y="75.0" width="235.0" height="65.0" rx="8" fill="#ffffff" stroke="#0288d1" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="192.5" y="97.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0288d1" text-anchor="middle">ReAct 编排引擎</text><text x="192.5" y="112.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【新增外部服务 / 库内运行时】</text><text x="192.5" y="127.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">Planning 规划 -&gt; Tool 调用 -&gt; Reflection 反思</text><rect x="330.0" y="75.0" width="215.0" height="65.0" rx="8" fill="#ffffff" stroke="#0288d1" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="437.5" y="97.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0288d1" text-anchor="middle">Select AI (NL2SQL)</text><text x="437.5" y="112.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面 Agent 模块】</text><text x="437.5" y="127.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">绑定元数据字典与 LLM，转高精度 SQL</text><rect x="565.0" y="75.0" width="245.0" height="65.0" rx="8" fill="#ffffff" stroke="#0288d1" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="687.5" y="97.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0288d1" text-anchor="middle">In-DB Tool &amp; MCP 适配器</text><text x="687.5" y="112.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【外部独立网关服务 / 容器化】</text><text x="687.5" y="127.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">暴露标准 MCP 接口，调度 PL/SQL 与 REST</text><rect x="830.0" y="75.0" width="235.0" height="65.0" rx="8" fill="#ffffff" stroke="#0288d1" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="947.5" y="97.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0288d1" text-anchor="middle">长短期记忆与审计视图</text><text x="947.5" y="112.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核表 + 系统视图】</text><text x="947.5" y="127.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">USER_CLOUD_AI_CONVERSATION 审计表</text><rect x="100.0" y="185.0" width="940.0" height="34.0" rx="6" fill="#e0f2fe" stroke="#0288d1" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,195.0 122.0,195.0 118.0,206.0" fill="#0288d1" /><polygon points="1018.0,195.0 1026.0,195.0 1022.0,206.0" fill="#0288d1" /><text x="570.0" y="205.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#0288d1" text-anchor="middle">层间配合：库内函数调用 (DBMS_CLOUD_AI / In-DB UDF) ── 外部 Agent 下发执行计划 / 事务上下文传递 / 记忆读写</text><rect x="75.0" y="285.0" width="225.0" height="75.0" rx="8" fill="#ffffff" stroke="#512da8" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="187.5" y="312.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#512da8" text-anchor="middle">OLTP 事务引擎</text><text x="187.5" y="327.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核模块】</text><text x="187.5" y="342.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">ACID 强一致 / 行存 / 锁管理 / 写 Redo</text><rect x="320.0" y="285.0" width="235.0" height="75.0" rx="8" fill="#ffffff" stroke="#512da8" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="437.5" y="304.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#512da8" text-anchor="middle">Database In-Memory (AP)</text><text x="437.5" y="319.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核列存模块】</text><text x="437.5" y="334.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">双格式内存列存 / SIMD 向量化加速</text><text x="437.5" y="349.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(写入行存 ── 内核Redo流 ──&gt; 列存免ETL)</text><rect x="575.0" y="285.0" width="245.0" height="75.0" rx="8" fill="#ffffff" stroke="#512da8" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="697.5" y="304.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#512da8" text-anchor="middle">AI Vector Search &amp; ONNX</text><text x="697.5" y="319.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核向量模块 + 同机Sidecar】</text><text x="697.5" y="334.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">原生 VECTOR 类型 / HNSW 索引 / 库内推理</text><text x="697.5" y="349.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(写入自动触发向量化，保持事务原子性)</text><rect x="840.0" y="285.0" width="225.0" height="75.0" rx="8" fill="#ffffff" stroke="#512da8" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="952.5" y="312.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#512da8" text-anchor="middle">JSON Duality &amp; Graph</text><text x="952.5" y="327.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核多模模块】</text><text x="952.5" y="342.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">属性图分析 / 关系与文档双向透明映射</text><rect x="100.0" y="415.0" width="940.0" height="34.0" rx="6" fill="#ede7f6" stroke="#512da8" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,425.0 122.0,425.0 118.0,436.0" fill="#512da8" /><polygon points="1018.0,425.0 1026.0,425.0 1022.0,436.0" fill="#512da8" /><text x="570.0" y="435.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#512da8" text-anchor="middle">层间配合：存储硬件算子下推 (Smart Scan: 向量距离计算/谓词过滤) ── 闪存缓存加速 &amp; 外部湖原位只读</text><rect x="75.0" y="515.0" width="310.0" height="80.0" rx="8" fill="#ffffff" stroke="#2e7d32" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="230.0" y="537.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#2e7d32" text-anchor="middle">Exadata Smart Scan</text><text x="230.0" y="552.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【存储节点底层软件/FPGA下推】</text><text x="230.0" y="567.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">向量距离计算与谓词在存储硬件并发下推</text><text x="230.0" y="582.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(仅返回 Top-K 结果，降低 90%+ 网络 IO)</text><rect x="410.0" y="515.0" width="310.0" height="80.0" rx="8" fill="#ffffff" stroke="#2e7d32" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="565.0" y="537.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#2e7d32" text-anchor="middle">True Cache &amp; Exascale 闪存</text><text x="565.0" y="552.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【分布式缓存集群 / 硬件加速】</text><text x="565.0" y="567.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">事务一致性中层缓存 / 闪存高速加速</text><text x="565.0" y="582.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(为高并发分析提供极低延迟)</text><rect x="745.0" y="515.0" width="320.0" height="80.0" rx="8" fill="#ffffff" stroke="#2e7d32" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="905.0" y="537.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#2e7d32" text-anchor="middle">Autonomous AI Catalog &amp; 外部湖互通</text><text x="905.0" y="552.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【外部湖仓连接插件 / 管控面 Catalog】</text><text x="905.0" y="567.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">原位直读 Apache Iceberg / Delta Sharing</text><text x="905.0" y="582.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(库内核心交易数据与外部大数据原位关联 Join)</text>
-    </svg>
-      </div>
-
-      <h4>三层架构的配合关系与组件物理落点：</h4>
-      <ul>
-        <li><strong>第 1 层：智能交互与 Agent 编排层 (Select AI Agent Framework)  <span style="color:#d97706;font-weight:700;">【落点：管控面微服务 + 库内运行时】</span>：</strong>
-          <ul>
-            <li><strong>ReAct 编排引擎：</strong>作为外部微服务或库内 PL/SQL 运行时运行，负责 <code>Planning 规划 -&gt; Tool 调用 -&gt; Reflection 反思</code> 循环。</li>
-            <li><strong>Select AI (NL2SQL)：</strong>部署在管控面 Agent 模块中，绑定元数据字典与 LLM，将自然语言转为高精度 SQL。</li>
-            <li><strong>In-DB Tool &amp; MCP 适配器：</strong>作为外部独立微服务容器化部署，暴露标准 MCP 接口，统一调度库内存储过程与外部 REST API。</li>
-            <li><strong>长短期记忆视图：</strong>物理存储在<strong>数据库内核系统表</strong>（<code>USER_CLOUD_AI_CONVERSATION</code>）中，由内核事务保证审计一致性。</li>
-          </ul>
-        </li>
-        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>通过库内函数调用（<code>DBMS_CLOUD_AI</code> / In-DB UDF），Agent 将生成的执行计划与事务上下文直接下发给 SQL 计算引擎。</li>
-        <li><strong>第 2 层：统一多模 SQL 计算引擎层 (Converged Engine)  <span style="color:#2563eb;font-weight:700;">【落点：数据库内核 C++ 核心进程】</span>：</strong>
-          <ul>
-            <li><strong>OLTP 事务引擎：</strong>内核核心代码，负责行存、ACID 强一致性、锁管理并生成 Redo Log。</li>
-            <li><strong>Database In-Memory (AP)：</strong>内核列存模块，行存数据通过<strong>内核 Redo 流式回放线程</strong>毫秒级同步为双格式内存列存，<strong>物理免去外部 ETL 搬迁</strong>。</li>
-            <li><strong>AI Vector Search &amp; ONNX：</strong>内核原生支持 <code>VECTOR</code> 类型与 HNSW 索引；当文本写入时由内核触发同机 ONNX 模型生成向量，保持事务原子性。</li>
-            <li><strong>JSON Duality &amp; Graph：</strong>内核多模模块，实现属性图分析以及关系表与文档格式的透明双向映射。</li>
-          </ul>
-        </li>
-        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>通过 <strong>Smart Scan 存储硬件算子下推</strong>，向量距离计算与谓词过滤直接在存储层并发完成，仅将 Top-K 结果返回计算层。</li>
-        <li><strong>第 3 层：智能存储与开放湖仓加速层  <span style="color:#059669;font-weight:700;">【落点：底层存储节点 + 湖仓连接器】</span>：</strong>
-          <ul>
-            <li><strong>Exadata Smart Scan：</strong>运行在 Exadata 存储节点底层软件/FPGA 中，硬件级下推计算，节省 90%+ 网络 IO。</li>
-            <li><strong>True Cache &amp; Exascale 闪存：</strong>分布式事务一致性中层缓存集群，为高并发查询提供低延迟。</li>
-            <li><strong>Autonomous AI Catalog 湖仓连接器：</strong>作为外部连接插件与管控面 Catalog，原位直读外部 S3/Iceberg 表（基于 Delta Sharing），实现跨云数据原位 Join。</li>
-          </ul>
-        </li>
-      </ul>
-
-      <h4>落地客户与成效：</h4>
-      <ul>
-        <li><strong>全球顶级跨国银行：</strong>在核心交易系统中落地实时反洗钱（AML）与实时风控，利用库内向量检索与事务保障，实现<strong>数据物理不出库</strong>。</li>
-        <li><strong>跨国电信巨头：</strong>将数十亿级计费记录与客服通话非结构化工单统一在 Exadata In-Memory 中，提供亚秒级实时经营报表与故障排查。</li>
-      </ul>
-
-      <hr style="border:none;border-top:1px dashed var(--line);margin:30px 0;" />
-
-      <!-- 2. Databricks -->
-      <h3>2. Databricks (Delta Lake + Unity Catalog + Agent Bricks)</h3>
-      <p>
-        <span class="badge">技术流派</span><strong>数据湖仓自顶向下派（Lakehouse-First）</strong><br />
-        Databricks 依托 Delta Lake 开放存储底座，通过 Unity Catalog 统筹治理，将 Agent 拆分为外部独立的微服务与 Serverless 向量搜索集群。
-      </p>
-
-      <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】Databricks Mosaic AI Agent Bricks 架构体系与组件落点 (draw.io 绘制)</div>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 670" width="100%" height="auto">
-      <rect x="0" y="0" width="1140" height="670" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" /><rect x="50.0" y="80.0" width="1040.0" height="155.0" rx="10" fill="#fff3e0" stroke="#e65100" stroke-width="1.8" /><path d="M 50.0 90.0 A 10 10 0 0 1 60.0 80.0 L 1080.0 80.0 A 10 10 0 0 1 1090.0 90.0 L 1090.0 110.0 L 50.0 110.0 Z" fill="#e65100" opacity="0.14" /><text x="66.0" y="100.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#e65100">1. Mosaic AI Agent Framework (Agent Bricks &amp; Multi-Agent Supervisor)  【落点：新增外部服务 / Model Serving 容器化部署】</text><rect x="50.0" y="300.0" width="1040.0" height="115.0" rx="10" fill="#e8eaf6" stroke="#283593" stroke-width="1.8" /><path d="M 50.0 310.0 A 10 10 0 0 1 60.0 300.0 L 1080.0 300.0 A 10 10 0 0 1 1090.0 310.0 L 1090.0 330.0 L 50.0 330.0 Z" fill="#283593" opacity="0.14" /><text x="66.0" y="320.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#283593">2. 统一治理控制面 (Unity Catalog)  【落点：管控面独立服务集群 + 元数据库】</text><rect x="50.0" y="480.0" width="1040.0" height="160.0" rx="10" fill="#e0f2f1" stroke="#00695c" stroke-width="1.8" /><path d="M 50.0 490.0 A 10 10 0 0 1 60.0 480.0 L 1080.0 480.0 A 10 10 0 0 1 1090.0 490.0 L 1090.0 510.0 L 50.0 510.0 Z" fill="#00695c" opacity="0.14" /><text x="66.0" y="500.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#00695c">3. 湖仓存储与自动同步索引层 (Delta Lake &amp; Databricks AI Search)  【落点：内核引擎 + 复制管道 + 向量检索引擎】</text><rect x="50.0" y="25.0" width="1040.0" height="38.0" rx="8" fill="#f5f5f5" stroke="#666666" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="570.0" y="48.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0f172a" text-anchor="middle">应用与接入端 (Chatbot / 业务系统 / IDE / MCP 客户端)</text><rect x="75.0" y="125.0" width="235.0" height="85.0" rx="8" fill="#ffffff" stroke="#e65100" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="192.5" y="157.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">Multi-Agent Supervisor</text><text x="192.5" y="172.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【新增外部编排微服务】</text><text x="192.5" y="187.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">意图分类 / 任务拆解 / 路由编排</text><rect x="330.0" y="125.0" width="225.0" height="85.0" rx="8" fill="#ffffff" stroke="#e65100" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="442.5" y="149.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">Genie Space (SQL Agent)</text><text x="442.5" y="164.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【新增外部 AI 服务】</text><text x="442.5" y="179.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">针对 Gold 业务表自动生成 SQL</text><text x="442.5" y="194.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">高精度指标与聚合分析</text><rect x="575.0" y="125.0" width="235.0" height="85.0" rx="8" fill="#ffffff" stroke="#e65100" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="692.5" y="149.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">Knowledge Assistant</text><text x="692.5" y="164.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【新增外部 RAG 服务】</text><text x="692.5" y="179.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">基于 AI Search 混合检索</text><text x="692.5" y="194.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">非结构化财报/专利/文档 RAG</text><rect x="830.0" y="125.0" width="235.0" height="85.0" rx="8" fill="#ffffff" stroke="#e65100" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="947.5" y="149.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">UC Functions (确定性工具)</text><text x="947.5" y="164.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面函数注册 + 容器执行】</text><text x="947.5" y="179.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">风控计算 / 审批逻辑 / 定价算法</text><text x="947.5" y="194.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">可审计的 Python / SQL 工具</text><rect x="100.0" y="250.0" width="940.0" height="34.0" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,260.0 122.0,260.0 118.0,271.0" fill="#e65100" /><polygon points="1018.0,260.0 1026.0,260.0 1022.0,271.0" fill="#e65100" /><text x="570.0" y="270.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#e65100" text-anchor="middle">层间配合：Agent 严格继承用户身份 Token ── 统一进行权限评估、动态列脱敏、行级过滤 (RLS) 与 MLflow 审计</text><rect x="75.0" y="342.0" width="225.0" height="55.0" rx="8" fill="#ffffff" stroke="#283593" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="187.5" y="359.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#283593" text-anchor="middle">统一身份继承</text><text x="187.5" y="374.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面鉴权模块】</text><text x="187.5" y="389.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(Agent 遵循发起人 RBAC 权限)</text><rect x="320.0" y="342.0" width="235.0" height="55.0" rx="8" fill="#ffffff" stroke="#283593" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="437.5" y="359.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#283593" text-anchor="middle">行级安全 (RLS) &amp; 列脱敏</text><text x="437.5" y="374.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面安全策略引擎】</text><text x="437.5" y="389.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(向量索引与源表一致脱敏)</text><rect x="575.0" y="342.0" width="235.0" height="55.0" rx="8" fill="#ffffff" stroke="#283593" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="692.5" y="359.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#283593" text-anchor="middle">MLflow 自动评估与追踪</text><text x="692.5" y="374.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面 MLOps 审计服务】</text><text x="692.5" y="389.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(Tracing / 延迟 / 成本 / 幻觉评测)</text><rect x="830.0" y="342.0" width="235.0" height="55.0" rx="8" fill="#ffffff" stroke="#283593" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="947.5" y="359.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#283593" text-anchor="middle">端到端血缘 (Lineage)</text><text x="947.5" y="374.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面元数据图谱】</text><text x="947.5" y="389.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(源表 -&gt; 向量索引 -&gt; Agent 回复)</text><rect x="100.0" y="430.0" width="940.0" height="34.0" rx="6" fill="#e8eaf6" stroke="#283593" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,440.0 122.0,440.0 118.0,451.0" fill="#283593" /><polygon points="1018.0,440.0 1026.0,440.0 1022.0,451.0" fill="#283593" /><text x="570.0" y="450.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#283593" text-anchor="middle">层间配合：Change Data Feed (CDF) 自动捕获表变更 ── 复制管道 / Serverless 异步实时增量向量化 (免建任何 ETL 管道)</text><rect x="75.0" y="525.0" width="290.0" height="85.0" rx="8" fill="#ffffff" stroke="#00695c" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="220.0" y="549.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#00695c" text-anchor="middle">既有 Delta Table (结构化/文本)</text><text x="220.0" y="564.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【计算/存储引擎层 - 对象存储】</text><text x="220.0" y="579.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">Bronze / Silver / Gold 分层架构</text><text x="220.0" y="594.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(企业最核心事实资产与业务数据)</text><rect x="390.0" y="525.0" width="280.0" height="85.0" rx="8" fill="#b2dfdb" stroke="#00695c" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="530.0" y="549.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#00695c" text-anchor="middle">Change Data Feed (CDF)</text><text x="530.0" y="564.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【复制与变更日志管道】</text><text x="530.0" y="579.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">行级增删改事件实时流式广播</text><text x="530.0" y="594.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(驱动向量索引零延迟更新)</text><rect x="695.0" y="525.0" width="370.0" height="85.0" rx="8" fill="#ffffff" stroke="#00695c" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="880.0" y="549.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#00695c" text-anchor="middle">Databricks AI Search 托管索引</text><text x="880.0" y="564.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【独立向量搜索服务 / Serverless】</text><text x="880.0" y="579.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">Serverless 自动调用模型计算 Embedding</text><text x="880.0" y="594.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">HNSW 向量 + BM25 关键词混合检索引擎</text>
-    </svg>
-      </div>
-
-      <h4>架构协作细节与组件物理落点：</h4>
-      <ul>
-        <li><strong>第 1 层：Mosaic AI Agent Framework (Agent Bricks)  <span style="color:#d97706;font-weight:700;">【落点：新增外部服务 / Model Serving 容器化部署】</span>：</strong>
-          <ul>
-            <li><strong>Multi-Agent Supervisor：</strong>新增外部编排微服务，负责意图分类、任务拆解与子 Agent 路由。</li>
-            <li><strong>Genie Space (SQL Agent)：</strong>新增外部 AI 服务，针对结构化 Gold 业务表自动生成并执行分析 SQL。</li>
-            <li><strong>Knowledge Assistant：</strong>新增外部 RAG 服务，绑定 AI Search 索引，负责非结构化文档检索。</li>
-            <li><strong>UC Functions (确定性工具)：</strong>在管控面注册的 Python/SQL 业务函数（如授信审批、风控公式），作为 Agent 调用的工具。</li>
-          </ul>
-        </li>
-        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>Agent 严格继承用户身份 Token，通过 Unity Catalog 集中进行 RBAC 鉴权、动态列脱敏与行级过滤（RLS），并由 MLflow 记录端到端 Tracing。</li>
-        <li><strong>第 2 层：统一治理控制面 (Unity Catalog)  <span style="color:#059669;font-weight:700;">【落点：管控面独立服务集群 + 元数据库】</span>：</strong>
-          提供统一身份继承、行级安全规则引擎、MLflow 自动评估服务以及数据到 Agent 输出的端到端血缘图谱。</li>
-        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>通过 <strong>Change Data Feed (CDF) 复制管道</strong>捕获数据表变更，异步推送到 Serverless 算力构建向量索引。</li>
-        <li><strong>第 3 层：湖仓存储与自动同步索引层  <span style="color:#2563eb;font-weight:700;">【落点：内核引擎 + 复制管道 + 向量检索集群】</span>：</strong>
-          <ul>
-            <li><strong>既有 Delta Table：</strong>运行在对象存储上的 Bronze/Silver/Gold 分层数据资产。</li>
-            <li><strong>Change Data Feed (CDF)：</strong>内核级逻辑复制管道，将行级增删改事件实时广播。</li>
-            <li><strong>Databricks AI Search：</strong>作为<strong>独立托管的 Serverless 向量搜索集群</strong>部署，自动调用模型计算 Embedding 并维护 HNSW/BM25 混合索引。</li>
-          </ul>
-        </li>
-      </ul>
-
-      <h4>落地客户与成效：</h4>
-      <ul>
-        <li><strong>康宁（Corning）：</strong>基于 Delta Lake 专利库构建企业研究助手，由 Agent Bricks 快速装配上线，研发文献检索效率提升数倍。</li>
-        <li><strong>洲际交易所（ICE）：</strong>为金融客户提供合规问答助手，凭借 Unity Catalog 严格的行级安全与审计满足合规要求。</li>
-        <li><strong>Block (Square) &amp; 巴斯夫 (BASF)：</strong>用于商家自适应运营生成及全球 1000+ 销售代表的智能销售情报辅助。</li>
-      </ul>
-
-      <hr style="border:none;border-top:1px dashed var(--line);margin:30px 0;" />
-
-      <!-- 3. Snowflake -->
-      <h3>3. Snowflake (Horizon Catalog + Cortex AI &amp; Cortex Agents)</h3>
-      <p>
-        <span class="badge">技术流派</span><strong>云数仓演进派（Data Cloud &amp; Semantic-First）</strong><br />
-        Snowflake 强调 <strong>“管控面语义模型驱动 + 外部 Cortex Agent 服务 + 虚拟数仓弹性算力”</strong> 的协同分工。
-      </p>
-
-      <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】Snowflake Cortex AI 与 Horizon Catalog 协同体系及组件落点 (draw.io 绘制)</div>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 670" width="100%" height="auto">
-      <rect x="0" y="0" width="1140" height="670" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" /><rect x="50.0" y="30.0" width="1040.0" height="155.0" rx="10" fill="#e1f5fe" stroke="#0288d1" stroke-width="1.8" /><path d="M 50.0 40.0 A 10 10 0 0 1 60.0 30.0 L 1080.0 30.0 A 10 10 0 0 1 1090.0 40.0 L 1090.0 60.0 L 50.0 60.0 Z" fill="#0288d1" opacity="0.14" /><text x="66.0" y="50.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#0288d1">1. Cortex Agents 编排与双驱动工具层  【落点：新增外部服务 / 容器化 Cortex 运行时】</text><rect x="50.0" y="250.0" width="1040.0" height="140.0" rx="10" fill="#ede7f6" stroke="#512da8" stroke-width="1.8" /><path d="M 50.0 260.0 A 10 10 0 0 1 60.0 250.0 L 1080.0 250.0 A 10 10 0 0 1 1090.0 260.0 L 1090.0 280.0 L 50.0 280.0 Z" fill="#512da8" opacity="0.14" /><text x="66.0" y="270.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#512da8">2. 统一治理控制面 (Snowflake Horizon Catalog / Apache Polaris)  【落点：管控面独立服务集群 + 元数据库】</text><rect x="50.0" y="455.0" width="1040.0" height="150.0" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.8" /><path d="M 50.0 465.0 A 10 10 0 0 1 60.0 455.0 L 1080.0 455.0 A 10 10 0 0 1 1090.0 465.0 L 1090.0 485.0 L 50.0 485.0 Z" fill="#2e7d32" opacity="0.14" /><text x="66.0" y="475.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#2e7d32">3. 弹性计算与统一存储层 (Snowflake Managed Tables &amp; Apache Iceberg)  【落点：数据库内核计算节点 + 湖仓连接器 + 对象存储】</text><rect x="75.0" y="75.0" width="235.0" height="85.0" rx="8" fill="#ffffff" stroke="#0288d1" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="192.5" y="107.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0288d1" text-anchor="middle">Cortex Agent (智能路由)</text><text x="192.5" y="122.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【新增外部 Agent 服务】</text><text x="192.5" y="137.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">Auto-Routing 意图分类 / 原生 MCP 端点</text><rect x="330.0" y="75.0" width="345.0" height="85.0" rx="8" fill="#ffffff" stroke="#0288d1" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="502.5" y="99.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0288d1" text-anchor="middle">工具 A: Cortex Analyst</text><text x="502.5" y="114.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【新增外部 Text-to-SQL 服务】</text><text x="502.5" y="129.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">结构化数据高精度 Text-to-SQL</text><text x="502.5" y="144.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">绑定 Horizon 语义视图 (消除幻觉，准确率 &gt;90%)</text><rect x="695.0" y="75.0" width="370.0" height="85.0" rx="8" fill="#ffffff" stroke="#0288d1" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="880.0" y="99.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0288d1" text-anchor="middle">工具 B: Cortex Search &amp; Analytical Search</text><text x="880.0" y="114.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【独立搜索集群 + 库内分析算子】</text><text x="880.0" y="129.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">Layer 1: 自适应深度候选集剪枝召回</text><text x="880.0" y="144.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">Layer 2: AI_FILTER / AI_EXTRACT / AI_AGG 算子分析</text><rect x="100.0" y="200.0" width="940.0" height="34.0" rx="6" fill="#e1f5fe" stroke="#0288d1" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,210.0 122.0,210.0 118.0,221.0" fill="#0288d1" /><polygon points="1018.0,210.0 1026.0,210.0 1022.0,221.0" fill="#0288d1" /><text x="570.0" y="220.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#0288d1" text-anchor="middle">层间配合：语义驱动与政策校验 ── Cortex Analyst 读取语义模型生成 SQL，PDP 实时拦截越权与敏感数据</text><rect x="75.0" y="295.0" width="310.0" height="70.0" rx="8" fill="#ffffff" stroke="#512da8" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="230.0" y="312.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#512da8" text-anchor="middle">Semantic Views (语义即代码)</text><text x="230.0" y="327.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面语义建模模块】</text><text x="230.0" y="342.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">指标公式 / 维度关系 / 同义词声明</text><text x="230.0" y="357.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(统一业务口径，支撑 AI 精准理解)</text><rect x="410.0" y="295.0" width="310.0" height="70.0" rx="8" fill="#ffffff" stroke="#512da8" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="565.0" y="312.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#512da8" text-anchor="middle">Policy Decision Point (PDP)</text><text x="565.0" y="327.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面策略判定引擎】</text><text x="565.0" y="342.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">动态脱敏 / 行访问策略 (Row-Access)</text><text x="565.0" y="357.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(跨 SQL 与向量查询统一生效)</text><rect x="745.0" y="295.0" width="320.0" height="70.0" rx="8" fill="#ffffff" stroke="#512da8" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="905.0" y="312.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#512da8" text-anchor="middle">Cortex AI Guardrails</text><text x="905.0" y="327.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面内容安全模块】</text><text x="905.0" y="342.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">PII 敏感数据拦截 / Agent 运行时审计</text><text x="905.0" y="357.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(保障生成内容符合安全合规标准)</text><rect x="100.0" y="405.0" width="940.0" height="34.0" rx="6" fill="#ede7f6" stroke="#512da8" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,415.0 122.0,415.0 118.0,426.0" fill="#512da8" /><polygon points="1018.0,415.0 1026.0,415.0 1022.0,426.0" fill="#512da8" /><text x="570.0" y="425.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#512da8" text-anchor="middle">层间配合：安全授权下发到无共享虚拟数仓 ── 双向读写内部表与 S3/Azure 开放 Iceberg 外部表 (物理零搬迁)</text><rect x="75.0" y="500.0" width="465.0" height="75.0" rx="8" fill="#ffffff" stroke="#2e7d32" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="307.5" y="519.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#2e7d32" text-anchor="middle">虚拟仓库 (Virtual Warehouses)</text><text x="307.5" y="534.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核计算集群 / C++】</text><text x="307.5" y="549.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">隔离的弹性计算资源 / 无锁多读多写</text><text x="307.5" y="564.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(支持分析与 AI 推理算力按需秒级伸缩)</text><rect x="565.0" y="500.0" width="500.0" height="75.0" rx="8" fill="#ffffff" stroke="#2e7d32" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="815.0" y="519.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#2e7d32" text-anchor="middle">双向开放存储 (Open Iceberg REST Catalog)</text><text x="815.0" y="534.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【外部湖仓连接插件 + 底层对象存储】</text><text x="815.0" y="549.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">内部微分区专有表 + S3/Azure 开放 Iceberg 外部表</text><text x="815.0" y="564.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(统一格式治理，消除数据孤岛)</text>
-    </svg>
-      </div>
-
-      <h4>核心技术协同与组件物理落点：</h4>
-      <ul>
-        <li><strong>第 1 层：Cortex Agents 编排与双驱动工具层  <span style="color:#d97706;font-weight:700;">【落点：新增外部服务 / 容器化 Cortex 运行时】</span>：</strong>
-          <ul>
-            <li><strong>Cortex Agent：</strong>新增外部编排服务，负责意图分类与 Auto-Routing，原生提供标准 MCP 端点。</li>
-            <li><strong>Cortex Analyst：</strong>外部 Text-to-SQL 服务，强制读取 Horizon 语义视图以消除幻觉，准确率达到 90%+。</li>
-            <li><strong>Cortex Search &amp; Analytical Search：</strong>结合独立检索集群与库内分析算子（<code>AI_FILTER</code> / <code>AI_AGG</code>），完成非结构化内容的两层深度分析。</li>
-          </ul>
-        </li>
-        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>Cortex Analyst 读取语义模型生成标准 SQL，Policy Decision Point (PDP) 实时判定权限并拦截越权请求。</li>
-        <li><strong>第 2 层：统一治理控制面 (Horizon Catalog)  <span style="color:#059669;font-weight:700;">【落点：管控面独立服务集群 + 元数据库】</span>：</strong>
-          <ul>
-            <li><strong>Semantic Views (语义即代码)：</strong>管控面建模模块，统一指标公式、维度关系与同义词定义。</li>
-            <li><strong>Policy Decision Point (PDP)：</strong>安全策略引擎，跨 SQL 与向量检索统一执行动态脱敏和行访问控制。</li>
-            <li><strong>Cortex AI Guardrails：</strong>内容安全过滤模块，实时拦截 PII 敏感信息。</li>
-          </ul>
-        </li>
-        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>将通过安全校验的查询任务下发给无共享架构的虚拟数仓计算节点。</li>
-        <li><strong>第 3 层：弹性计算与统一存储层  <span style="color:#2563eb;font-weight:700;">【落点：数据库内核计算节点 + 湖仓连接器 + 对象存储】</span>：</strong>
-          <ul>
-            <li><strong>虚拟仓库 (Virtual Warehouses)：</strong>C++ 编写的无状态弹性计算集群，按需秒级拉起，执行分布式分析与算子计算。</li>
-            <li><strong>双向开放存储 (Open Iceberg REST Catalog)：</strong>外部湖仓连接插件与底层存储，统一读写内部专有表与外部 S3/Azure Iceberg 表。</li>
-          </ul>
-        </li>
-      </ul>
-
-      <h4>落地客户与成效：</h4>
-      <ul>
-        <li><strong>SRAM：</strong>通过 Cortex Analyst 让非技术员工在 Slack 中直接用自然语言查询多维销售与库存指标，无需 DBA 手工提数。</li>
-        <li><strong>拜耳 (Bayer)、Booking.com、DoorDash：</strong>用于供应链智能调度与海量用户全域评论情感洞察。</li>
-      </ul>
-
-      <hr style="border:none;border-top:1px dashed var(--line);margin:30px 0;" />
-
-      <!-- 4. 阿里云 PolarDB -->
-      <h3>4. 阿里云 PolarDB (PolarDB IMCI + PolarDB for AI + Agent Lakebase)</h3>
-      <p>
-        <span class="badge">技术流派</span><strong>云原生数据库内核演进派（Cloud-Native DB &amp; HTAP）</strong><br />
-        PolarDB 采用一写多读架构，主节点 TP 与列存节点 AP 全在内核数据面完成，AI 模型推理与 Agent 沙箱则通过外部微服务和轻量容器解耦。
-      </p>
-
-      <div class="diagram-container">
-        <div class="diagram-title">【架构设计图】阿里云 PolarDB IMCI、AI 算子化与 Agent Lakebase 架构及组件落点 (draw.io 绘制)</div>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 670" width="100%" height="auto">
-      <rect x="0" y="0" width="1140" height="670" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" /><rect x="50.0" y="80.0" width="1040.0" height="160.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.8" /><path d="M 50.0 90.0 A 10 10 0 0 1 60.0 80.0 L 1080.0 80.0 A 10 10 0 0 1 1090.0 90.0 L 1090.0 110.0 L 50.0 110.0 Z" fill="#1565c0" opacity="0.14" /><text x="66.0" y="100.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#1565c0">1. PolarDB 计算集群 (一写多读架构，标准 MySQL 9.0 协议与 Vector 语法)  【落点：数据库内核进程 + AI 算子节点】</text><rect x="50.0" y="305.0" width="1040.0" height="125.0" rx="10" fill="#fff8e1" stroke="#f57f17" stroke-width="1.8" /><path d="M 50.0 315.0 A 10 10 0 0 1 60.0 305.0 L 1080.0 305.0 A 10 10 0 0 1 1090.0 315.0 L 1090.0 335.0 L 50.0 335.0 Z" fill="#f57f17" opacity="0.14" /><text x="66.0" y="325.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#f57f17">2. Agent Lakebase 工作空间基础设施 (2026 全新能力)  【落点：管控面沙箱管理器 + 容器化挂载工作区】</text><rect x="50.0" y="495.0" width="1040.0" height="140.0" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.8" /><path d="M 50.0 505.0 A 10 10 0 0 1 60.0 495.0 L 1080.0 495.0 A 10 10 0 0 1 1090.0 505.0 L 1090.0 525.0 L 50.0 525.0 Z" fill="#2e7d32" opacity="0.14" /><text x="66.0" y="515.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="12" font-weight="700" fill="#2e7d32">3. 共享分布式存储底座 (PolarStore 块存储 &amp; 外部 OSS 湖存储)  【落点：底层共享存储系统 + 对象存储】</text><rect x="50.0" y="25.0" width="1040.0" height="38.0" rx="8" fill="#f5f5f5" stroke="#666666" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="570.0" y="48.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#0f172a" text-anchor="middle">业务应用端 &amp; 智能体集群 (Agent Fleet / 销售助手 / 营销决策 / 智能客服)</text><rect x="75.0" y="125.0" width="220.0" height="90.0" rx="8" fill="#ffffff" stroke="#1565c0" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="185.0" y="152.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#1565c0" text-anchor="middle">主节点 (Primary TP)</text><text x="185.0" y="167.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核模块】</text><text x="185.0" y="182.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">高并发在线事务写入</text><text x="185.0" y="197.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">生成 Redo / WAL 日志</text><path d="M 310.0 153.75 L 422.0 153.75 L 422.0 140.0 L 440.0 167.5 L 422.0 195.0 L 422.0 181.25 L 310.0 181.25 Z" fill="#bbdefb" stroke="#1565c0" stroke-width="1.5" /><text x="366.0" y="156.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#0f172a" text-anchor="middle">内存流式解析</text><text x="366.0" y="169.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#334155" text-anchor="middle">【内核后台复制管道】</text><text x="366.0" y="183.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#334155" text-anchor="middle">毫秒级 Redo 同步</text><text x="366.0" y="196.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#334155" text-anchor="middle">(零 ETL 内存复制)</text><rect x="455.0" y="125.0" width="275.0" height="90.0" rx="8" fill="#ffffff" stroke="#1565c0" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="592.5" y="152.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#1565c0" text-anchor="middle">只读列存节点 (IMCI AP)</text><text x="592.5" y="167.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#2563eb" text-anchor="middle">【数据库内核列存模块】</text><text x="592.5" y="182.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">内存列存加速 / 向量化执行</text><text x="592.5" y="197.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">内置 HGraph 向量检索算法</text><rect x="750.0" y="125.0" width="315.0" height="90.0" rx="8" fill="#ffffff" stroke="#1565c0" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="907.5" y="152.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#1565c0" text-anchor="middle">PolarDB for AI 节点</text><text x="907.5" y="167.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【外部独立 AI 推理服务 / 同机 Sidecar】</text><text x="907.5" y="182.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">库内模型推理 (In-DB) / 通义千问调度</text><text x="907.5" y="197.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">MLOps 特征工程与离线/在线训练</text><rect x="100.0" y="255.0" width="940.0" height="34.0" rx="6" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,265.0 122.0,265.0 118.0,276.0" fill="#1565c0" /><polygon points="1018.0,265.0 1026.0,265.0 1022.0,276.0" fill="#1565c0" /><text x="570.0" y="275.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#1565c0" text-anchor="middle">层间配合：库内 AI 算子下发与沙箱上下文注入 ── SQL 直接调度 AI_PREDICT / 向量检索，驱动 Agent 工作空间</text><rect x="75.0" y="347.0" width="310.0" height="60.0" rx="8" fill="#ffffff" stroke="#f57f17" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="230.0" y="366.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#f57f17" text-anchor="middle">百万级 Agent 隔离空间</text><text x="230.0" y="381.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【新增外部沙箱服务 / 容器】</text><text x="230.0" y="396.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(每个 Agent 独立文件系统与会话视图)</text><rect x="410.0" y="347.0" width="310.0" height="60.0" rx="8" fill="#ffffff" stroke="#f57f17" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="565.0" y="366.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#f57f17" text-anchor="middle">嵌入式组件原生支持</text><text x="565.0" y="381.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【沙箱内嵌引擎】</text><text x="565.0" y="396.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(就地读写 SQLite / DuckDB / LanceDB)</text><rect x="745.0" y="347.0" width="320.0" height="60.0" rx="8" fill="#ffffff" stroke="#f57f17" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="905.0" y="366.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#f57f17" text-anchor="middle">Agent 级生命周期管理</text><text x="905.0" y="381.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【管控面管理中心】</text><text x="905.0" y="396.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(秒级快照 / 秒级克隆 / 挂载与故障回滚)</text><rect x="100.0" y="445.0" width="940.0" height="34.0" rx="6" fill="#fff8e1" stroke="#f57f17" stroke-width="1.5" stroke-dasharray="4 2" /><polygon points="114.0,455.0 122.0,455.0 118.0,466.0" fill="#f57f17" /><polygon points="1018.0,455.0 1026.0,455.0 1022.0,466.0" fill="#f57f17" /><text x="570.0" y="465.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11" font-weight="700" fill="#f57f17" text-anchor="middle">层间配合：共享存储底座与高速 RDMA 互联 ── 物理上仅一份数据，行存/列存/对象存储通过统一元数据管理</text><rect x="75.0" y="540.0" width="465.0" height="70.0" rx="8" fill="#ffffff" stroke="#2e7d32" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="307.5" y="557.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#2e7d32" text-anchor="middle">PolarStore 共享块存储</text><text x="307.5" y="572.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#059669" text-anchor="middle">【共享存储底层系统】</text><text x="307.5" y="587.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">RDMA 高速互联 / 存算分离 / 物理一份数据</text><text x="307.5" y="602.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(主节点与列存节点免复制共享底层数据文件)</text><rect x="565.0" y="540.0" width="500.0" height="70.0" rx="8" fill="#ffffff" stroke="#2e7d32" stroke-width="1.4" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.04))" /><text x="815.0" y="557.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="11.5" font-weight="700" fill="#2e7d32" text-anchor="middle">OSS 对象存储 &amp; 数据湖加速</text><text x="815.0" y="572.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="700" fill="#d97706" text-anchor="middle">【外部对象存储 + 湖仓连接器】</text><text x="815.0" y="587.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">大容量多模态非结构化文件 (图片/PDF/视频) 统一挂载</text><text x="815.0" y="602.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#475569" text-anchor="middle">(结合 Object Table 与 AI Function 自动切片向量化)</text>
-    </svg>
-      </div>
-
-      <h4>各节点分工、层间配合与组件物理落点：</h4>
-      <ul>
-        <li><strong>第 1 层：PolarDB 计算集群  <span style="color:#2563eb;font-weight:700;">【落点：数据库内核进程 + AI 算子节点】</span>：</strong>
-          <ul>
-            <li><strong>主节点 (Primary TP)：</strong>数据库内核代码，负责在线高并发事务写入并生成 Redo Log。</li>
-            <li><strong>内核复制管道：</strong>内核后台线程流式解析 Redo Log，毫秒级更新列存与 HGraph 向量索引（<strong>零 ETL 内存流式复制</strong>）。</li>
-            <li><strong>只读列存节点 (IMCI AP)：</strong>内核列存模块，支持内存列存加速、SIMD 向量化执行与 HGraph 向量检索算法。</li>
-            <li><strong>PolarDB for AI 节点：</strong>作为<strong>外部独立 AI 推理服务 / 同机 Sidecar</strong> 部署，负责大模型推理与 MLOps 特征工程，防止 GPU/模型高延迟拖垮内核。</li>
-          </ul>
-        </li>
-        <li><strong>第 1 层 ➔ 第 2 层配合链路：</strong>SQL 引擎直接下发 <code>AI_PREDICT</code> 与向量检索结果，驱动并挂载 Agent 运行时工作空间。</li>
-        <li><strong>第 2 层：Agent Lakebase 工作空间基础设施  <span style="color:#d97706;font-weight:700;">【落点：管控面沙箱管理器 + 容器化挂载工作区】</span>：</strong>
-          <ul>
-            <li><strong>百万级 Agent 隔离空间：</strong>新增外部沙箱服务，为每个 Agent 提供独立的文件系统与上下文视图。</li>
-            <li><strong>嵌入式引擎支持：</strong>沙箱内直接运行嵌入式 SQLite / DuckDB / LanceDB，满足本地快存快取。</li>
-            <li><strong>生命周期管理器：</strong>部署在管控面中，负责 Agent 专属秒级快照、克隆与故障回滚。</li>
-          </ul>
-        </li>
-        <li><strong>第 2 层 ➔ 第 3 层配合链路：</strong>通过共享存储底座与 RDMA 高速网络互联，物理上一份数据，行存、列存与对象存储共享底层文件。</li>
-        <li><strong>第 3 层：共享分布式存储底座  <span style="color:#059669;font-weight:700;">【落点：底层共享存储系统 + 对象存储】</span>：</strong>
-          <ul>
-            <li><strong>PolarStore 共享块存储：</strong>共享存储底层系统，支持主节点与只读节点免复制共享数据文件。</li>
-            <li><strong>OSS 对象存储 &amp; 湖仓加速：</strong>外部对象存储，通过 Object Table 与 AI Function 自动挂载非结构化图片/音视频并切片向量化。</li>
-          </ul>
-        </li>
-      </ul>
-
-      <h4>落地客户与成效：</h4>
-      <ul>
-        <li><strong>雅迪科技集团：</strong>在“云销通 App”中集成 PolarDB for AI，服务全国 <strong>10 万+ 销售与经销商人员</strong>，以自然语言口语化提问实时获取库存、批发、销售全域数据，<strong>NL2SQL 准确率超 90%</strong>。</li>
-        <li><strong>头部游戏与广告厂商：</strong>用于数亿级用户画像流失预测与广告点击率（CTR）库内实时推理。</li>
-      </ul>
-    </section>
-
-    <!-- SECTION 3: Main Matrix -->
-    <section class="card">
-      <h2>三、主流厂商全景矩阵横向对比</h2>
-      <table>
-        <tr>
-          <th>厂商 / 产品</th>
-          <th>产品定位与路线</th>
-          <th>核心架构与组件物理落点</th>
-          <th>AI / Agent 核心能力</th>
-          <th>典型代表客户</th>
-        </tr>
-        <tr>
-          <td><strong>OceanBase (OB)</strong></td>
-          <td>金融级分布式 TP -&gt; HTAP -&gt; 湖库一体 AI 数据库</td>
-          <td>【内核】：多模表 (Multimodal Table) + 混合搜索 (标量/全文/向量)<br>【管控/外部】：Fork Database 沙箱 + DataPilot 语义层</td>
-          <td>AI 列 (异步事务一致生成) + seekdb M0 记忆自进化 + 库级数据分支回滚</td>
-          <td>蚂蚁阿福 (医疗Agent沙箱)、灵光 (3000万轻应用)、中国联通、货拉拉</td>
-        </tr>
-        <tr>
-          <td><strong>Oracle</strong></td>
-          <td>企业关系型数据库龙头 -&gt; 26ai Converged Engine</td>
-          <td>【内核】：Database In-Memory 列存 + 原生 Vector 索引<br>【管控/外部】：Select AI Agent 编排微服务 + Exadata 硬件下推</td>
-          <td>Select AI Agent (ReAct 循环) + 库内 ONNX 推理 + Autonomous AI Lakehouse 原位读 Iceberg</td>
-          <td>全球顶级大型跨国银行、证券核心风控、跨国电信运营商核心计费</td>
-        </tr>
-        <tr>
-          <td><strong>Databricks</strong></td>
-          <td>数据湖仓 -&gt; Delta Lake + Unity Catalog 统一数据智能</td>
-          <td>【内核/存储】：Delta Table + CDF 复制管道<br>【管控/外部】：Unity Catalog 鉴权集群 + AI Search 向量服务 + Agent Bricks 微服务</td>
-          <td>Agent Bricks (一键装配) + Genie Space (SQL Agent) + Databricks AI Search 混合检索</td>
-          <td>康宁 (Corning 专利助手)、洲际交易所 (ICE)、Block (Square)、巴斯夫 (BASF)</td>
-        </tr>
-        <tr>
-          <td><strong>Snowflake</strong></td>
-          <td>云数仓 -&gt; AI Data Cloud + Apache Polaris 开放治理</td>
-          <td>【内核】：C++ 虚拟数仓计算集群<br>【管控/外部】：Horizon Catalog 语义建模 + Cortex Analyst/Search 微服务 + 原生 MCP</td>
-          <td>Cortex Analyst (语义驱动 Text-to-SQL) + Cortex Search (文本向量混合) + 原生 MCP Server</td>
-          <td>拜耳 (Bayer)、Booking.com、DoorDash、SRAM (Slack 智能 ChatBI)</td>
-        </tr>
-        <tr>
-          <td><strong>阿里云 PolarDB</strong></td>
-          <td>云原生分布式数据库 -&gt; IMCI 实时分析 -&gt; Agent Lakebase</td>
-          <td>【内核】：主节点 TP + IMCI 内存列存 (Redo 零ETL同步)<br>【管控/外部】：PolarDB for AI 推理 Sidecar + Agent Lakebase 沙箱集群</td>
-          <td>PolarDB for AI (库内通义千问推理) + 原生 Vector 类型 + Agent Lakebase 百万级沙箱</td>
-          <td>雅迪科技 (10万+销售端智能运营)、头部移动广告与游戏企业</td>
-        </tr>
-        <tr>
-          <td><strong>AWS</strong></td>
-          <td>分立式云服务组合 -&gt; Zero-ETL 存储复制与联邦</td>
-          <td>【内核/存储】：Aurora TP + Redshift AP<br>【管控/外部】：Zero-ETL 复制管道 + Glue Catalog + SageMaker Unified Studio</td>
-          <td>SageMaker Unified Studio + Bedrock 大模型 + Glue REST Catalog 联邦鉴权</td>
-          <td>跨国大型企业云上大数据与电商实时分析架构</td>
-        </tr>
-      </table>
-    </section>
-
-    <!-- SECTION 4: Engineering Action Blueprint -->
-    <section class="card">
-      <h2>四、自研数据库走“库仓一体+AI”的技术路线与研发建议</h2>
-      
-      <div class="note">
-        <strong>核心战略判断：</strong>
-        数据库的核心资产是<strong>既有业务数据与事务一致性</strong>。你们的目标应当是<strong>“让数据库内核吞并数仓 AP 与 AI 上下文能力，杜绝用户采购外部 Kafka + ClickHouse + 独立向量库”</strong>。
-      </div>
-
-      <h3>研发落地三阶段实施蓝图：</h3>
-      <div class="grid">
-        <div class="mini">
-          <h3>阶段一：筑基 (夯实内核 HTAP 列存仓能力)</h3>
-          <ul>
-            <li><strong>【数据库内核】：</strong>实现行存旁的内存列存 (IMCI，参考 PolarDB / Oracle In-Memory)。</li>
-            <li><strong>【内核流式管道】：</strong>内核后台线程流式解析 Redo Log，毫秒级将行存增量组织为列存 Block，实现物理零 ETL。</li>
-            <li><strong>【优化器智能分流】：</strong>CBO 优化器自动识别查询成本，OLTP 短查询走 B-Tree 索引，大聚合与复杂 Join 走 SIMD 向量化 AP 执行器。</li>
-            <li><strong>【强资源隔离】：</strong>CPU 核心与内存池物理划分，保障复杂的 AI/大数据分析跑满时核心交易 0 抖动。</li>
-          </ul>
-        </div>
-
-        <div class="mini">
-          <h3>阶段二：融入 AI 核心要素 (混合检索与外部推理代理)</h3>
-          <ul>
-            <li><strong>【数据库内核】：</strong>原生支持 <code>VECTOR(dim)</code> 类型与 HNSW 索引管理器，实现“标量过滤 + BM25 全文 + 向量”单条 SQL 多路召回。</li>
-            <li><strong>【新增外部服务】：</strong>开发同机 Sidecar / Daemon 形式的 <strong>AI 模型推理代理 (Model Gateway)</strong>，通过 UDS/共享内存与内核通信，执行 <code>AI_EMBED()</code> 与 <code>AI_PREDICT()</code>，防止外部网络/GPU 阻塞内核。</li>
-            <li><strong>【内核级安全穿透】：</strong>确保行级安全策略（RLS）和列脱敏在扫描算子层对向量检索完全生效。</li>
-          </ul>
-        </div>
-
-        <div class="mini">
-          <h3>阶段三：语义层与 Agent 原生生态 (商业化变现)</h3>
-          <ul>
-            <li><strong>【管控面平台】：</strong>开发 <strong>Semantic View 语义模型配置中心</strong>（指标公式、同义词声明），将 Text-to-SQL 准确率拉升至 90% 以上。</li>
-            <li><strong>【新增外部服务】：</strong>开发独立的 <strong>MCP Server 协议网关</strong>（Go/Node.js），暴露标准 MCP 接口供 Cursor、Claude Code、Dify 一键直连。</li>
-            <li><strong>【管控面/存储】：</strong>提供 Copy-on-Write 库级分支（Fork Database），为 Agent 提供秒级沙箱克隆与试错回滚能力。</li>
-          </ul>
-        </div>
-
-        <div class="mini">
-          <h3>商业化客户价值主张 (买点提炼)</h3>
-          <ul>
-            <li><strong>金融/政企客户：</strong>主打“数据不出库”与金融级审计合规，库内完成交易+风控+智能问答。</li>
-            <li><strong>中大型企业客户：</strong>主打“One Database for All”极简架构，替代 MySQL+Kafka+ClickHouse+Milvus，TCO 降低 50% 以上。</li>
-            <li><strong>Agent 创新企业：</strong>主打“事务一致性上下文引擎”，一个连接同时完成业务状态变更与知识检索。</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 5: References -->
-    <section class="card">
-      <h2>五、参考资料与官方文档</h2>
-      <ul>
-        <li><a href="https://zhuanlan.zhihu.com/p/2055689544582817505" target="_blank">OceanBase 湖库一体，重新定义 AI 数据库 (知乎专栏)</a></li>
-        <li><a href="https://www.oceanbase.com/solution/ai" target="_blank">OceanBase AI 数据库官方解决方案</a></li>
-        <li><a href="https://www.oracle.com/database/ai-native-database-26ai/" target="_blank">Oracle AI Database 26ai 发布与技术概览</a></li>
-        <li><a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/selai/select-ai-agent2.html" target="_blank">Oracle Select AI Agent (Autonomous Agent Framework) 官方文档</a></li>
-        <li><a href="https://www.databricks.com/product/artificial-intelligence/ai-search" target="_blank">Databricks AI Search 官方产品主页</a></li>
-        <li><a href="https://docs.databricks.com/aws/en/ai-search/ai-search" target="_blank">Databricks Mosaic AI Agent Framework 官方指南</a></li>
-        <li><a href="https://docs.snowflake.com/en/user-guide/snowflake-horizon" target="_blank">Snowflake Horizon Catalog 2026 治理架构</a></li>
-        <li><a href="https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents" target="_blank">Snowflake Cortex Agents 官方开发文档</a></li>
-        <li><a href="https://help.aliyun.com/zh/polardb/polardb-for-mysql/what-is-polardb-agent-lakebase" target="_blank">阿里云 PolarDB Agent LakeBase 产品文档</a></li>
-        <li><a href="https://help.aliyun.com/zh/polardb/polardb-for-mysql/electric-vehicle-manufacturing-yadi-technology-group-co-ltd" target="_blank">阿里云 PolarDB for AI 雅迪科技集团落地案例</a></li>
-      </ul>
-    </section>
-
-    <footer>
-      本报告由自研数据库架构与 AI 演进分析团队整理出品 · 支持浏览器本地离线与云端直接渲染
-    </footer>
-  </main>
-</body>
-</html>
+<section class="card sources">
+<h2>7. 逐项参考资料</h2>
+<p>以下全部为厂商官方文档、官方产品页、官方博客或官方客户案例。图中引用编号与此处一致。</p>
+<ul><li id="src-O0"><strong>[O0]</strong> <a href="https://www.oracle.com/database/ai-native-database-26ai/" target="_blank">Oracle 26ai replaces 23ai</a></li>
+<li id="src-O1"><strong>[O1]</strong> <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/all_diagrams.html" target="_blank">Oracle 26ai Technical Architecture</a></li>
+<li id="src-O2"><strong>[O2]</strong> <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbiad/db_inmemoryarea.html" target="_blank">Oracle In-Memory Area</a></li>
+<li id="src-O3"><strong>[O3]</strong> <a href="https://docs.oracle.com/en/engineered-systems/exadata-database-machine/dbmso/ai-vector-search.html" target="_blank">Exadata AI Smart Scan</a></li>
+<li id="src-O4"><strong>[O4]</strong> <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/selai/select-ai-agent2.html" target="_blank">Oracle Select AI Agent</a></li>
+<li id="src-O5"><strong>[O5]</strong> <a href="https://docs.oracle.com/en/cloud/paas/autonomous-database/serverless/adbsb/mcp-server.html" target="_blank">Autonomous AI Database MCP Server</a></li>
+<li id="src-O6"><strong>[O6]</strong> <a href="https://blogs.oracle.com/database/building-an-autonomous-fraud-detection-pipeline-with-autonomous-ai-database" target="_blank">Oracle in-database ONNX/vector/agent example</a></li>
+<li id="src-O7"><strong>[O7]</strong> <a href="https://www.oracle.com/autonomous-database/autonomous-ai-lakehouse/" target="_blank">Oracle Autonomous AI Lakehouse</a></li>
+<li id="src-O8"><strong>[O8]</strong> <a href="https://www.oracle.com/customers/retraced/" target="_blank">Oracle customer: Retraced</a></li>
+<li id="src-O9"><strong>[O9]</strong> <a href="https://www.oracle.com/customers/rappi/" target="_blank">Oracle customer: Rappi</a></li>
+<li id="src-P1"><strong>[P1]</strong> <a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index" target="_blank">PolarDB IMCI architecture</a></li>
+<li id="src-P2"><strong>[P2]</strong> <a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/htap-based-real-time-data-analysis-in-polardb" target="_blank">PolarDB IMCI technical approach</a></li>
+<li id="src-P3"><strong>[P3]</strong> <a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/automatic-non-sense-speed-autoindex" target="_blank">PolarDB AutoIndex/Redo synchronization</a></li>
+<li id="src-P4"><strong>[P4]</strong> <a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/polardb-for-ai-nl2sql-commercialized" target="_blank">PolarDB for AI and NL2SQL</a></li>
+<li id="src-P5"><strong>[P5]</strong> <a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/enable-the-polardb-for-ai-feature" target="_blank">Enable PolarDB for AI / AI nodes</a></li>
+<li id="src-P6"><strong>[P6]</strong> <a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/db-agent/" target="_blank">PolarDB Data-Agent</a></li>
+<li id="src-P7"><strong>[P7]</strong> <a href="https://help.aliyun.com/zh/polardb/polardb-for-mysql/building-a-retrieval-enhancement-rag-system-based-on-polardb-imci" target="_blank">PolarDB IMCI RAG implementation</a></li>
+<li id="src-P8"><strong>[P8]</strong> <a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/electric-vehicle-manufacturing-yadi-technology-group-co-ltd" target="_blank">PolarDB customer: Yadea</a></li>
+<li id="src-B1"><strong>[B1]</strong> <a href="https://www.oceanbase.com/solution/ai" target="_blank">OceanBase AI Database / Lakebase</a></li>
+<li id="src-B2"><strong>[B2]</strong> <a href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682097" target="_blank">OceanBase AI function service</a></li>
+<li id="src-B3"><strong>[B3]</strong> <a href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682098" target="_blank">OceanBase AI model registration</a></li>
+<li id="src-B4"><strong>[B4]</strong> <a href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326202" target="_blank">OceanBase Iceberg via External Catalog</a></li>
+<li id="src-B5"><strong>[B5]</strong> <a href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000006326199" target="_blank">OceanBase external data access and limits</a></li>
+<li id="src-B6"><strong>[B6]</strong> <a href="https://www.oceanbase.com/docs/common-best-practices-1000000002808478" target="_blank">OceanBase Spark Catalog integration</a></li>
+<li id="src-B7"><strong>[B7]</strong> <a href="https://www.oceanbase.com/docs/common-oceanbase-database-cn-1000000005682088" target="_blank">OceanBase semantic index</a></li>
+<li id="src-D1"><strong>[D1]</strong> <a href="https://docs.databricks.com/aws/en/oltp/projects/architecture" target="_blank">Databricks Lakebase architecture</a></li>
+<li id="src-D2"><strong>[D2]</strong> <a href="https://docs.databricks.com/aws/en/oltp/projects/storage-architecture" target="_blank">Databricks Lakebase storage architecture</a></li>
+<li id="src-D3"><strong>[D3]</strong> <a href="https://docs.databricks.com/aws/en/oltp/projects/ltap-overview" target="_blank">Databricks LTAP architecture</a></li>
+<li id="src-D4"><strong>[D4]</strong> <a href="https://docs.databricks.com/aws/en/ai-gateway/" target="_blank">Databricks Unity AI Gateway</a></li>
+<li id="src-D5"><strong>[D5]</strong> <a href="https://docs.databricks.com/aws/en/agents/custom-agents/build-agents" target="_blank">Databricks agents</a></li>
+<li id="src-D6"><strong>[D6]</strong> <a href="https://docs.databricks.com/aws/en/ai-search/ai-search" target="_blank">Databricks AI Search</a></li>
+<li id="src-D7"><strong>[D7]</strong> <a href="https://docs.databricks.com/aws/en/agents/agent-bricks/multi-agent-supervisor" target="_blank">Databricks Supervisor Agent</a></li>
+<li id="src-D8"><strong>[D8]</strong> <a href="https://www.databricks.com/customers/finthrive/agent-bricks" target="_blank">Databricks customer: FinThrive</a></li></ul>
+</section>
+</main></body></html>
