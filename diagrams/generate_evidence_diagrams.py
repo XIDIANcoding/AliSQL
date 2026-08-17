@@ -197,14 +197,31 @@ def make_drawio(spec):
         SubElement(cell, "mxGeometry", x=str(x), y=str(y), width=str(w),
                    height=str(h), **{"as": "geometry"})
     eid = 100
-    for src, dst, label in spec["edges"]:
-        cell = SubElement(root, "mxCell", id=str(eid), value=label,
+    for edge_num, (src, dst, label) in enumerate(spec["edges"], start=1):
+        cell = SubElement(root, "mxCell", id=str(eid), value=str(edge_num),
                           style="edgeStyle=orthogonalEdgeStyle;rounded=1;"
                                 "orthogonalLoop=1;jettySize=auto;html=1;"
-                                "strokeColor=#334155;fontSize=10;",
+                                "strokeColor=#334155;fontSize=10;fontStyle=1;"
+                                "labelBackgroundColor=#ffffff;",
                           edge="1", parent="1", source=node_map[src],
                           target=node_map[dst])
         SubElement(cell, "mxGeometry", relative="1", **{"as": "geometry"})
+        eid += 1
+    # Full connector descriptions live in a dedicated two-column legend.
+    # Keeping only numbers on edges prevents labels from covering nodes.
+    for edge_num, (_, _, label) in enumerate(spec["edges"], start=1):
+        col = 0 if edge_num <= 5 else 1
+        row = edge_num - 1 if col == 0 else edge_num - 6
+        x = 60 + col * 530
+        y = 610 + row * 34
+        cell = SubElement(
+            root, "mxCell", id=str(eid), value=f"{edge_num}. {label}",
+            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;"
+                  "strokeColor=#cbd5e1;fontSize=10;align=left;spacingLeft=8;",
+            vertex="1", parent="1"
+        )
+        SubElement(cell, "mxGeometry", x=str(x), y=str(y), width="490",
+                   height="28", **{"as": "geometry"})
         eid += 1
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(mxfile, encoding="unicode")
     (OUT / f"{spec['file']}.drawio").write_text(xml, encoding="utf-8")
@@ -212,28 +229,47 @@ def make_drawio(spec):
 
 def make_svg(spec):
     nodes = {n[0]: n for n in spec["nodes"]}
+    legend_rows = min(5, len(spec["edges"]))
+    canvas_h = 650 + legend_rows * 34
     parts = [
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 620" width="100%" height="auto">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 {canvas_h}" width="100%" height="auto">',
         '<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" '
         'orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#334155"/></marker></defs>',
-        '<rect width="1120" height="620" rx="14" fill="#fff" stroke="#e2e8f0"/>',
+        f'<rect width="1120" height="{canvas_h}" rx="14" fill="#fff" stroke="#e2e8f0"/>',
     ]
     # Edges first.
-    for src, dst, label in spec["edges"]:
+    for edge_num, (src, dst, label) in enumerate(spec["edges"], start=1):
         _, sx, sy, sw, sh, _, _ = nodes[src]
         _, dx, dy, dw, dh, _, _ = nodes[dst]
-        x1, y1 = sx + sw / 2, sy + sh
-        x2, y2 = dx + dw / 2, dy
         if abs(dy - sy) < 120:
+            # Horizontal links stay in the gap between adjacent boxes.
             x1, y1 = sx + sw, sy + sh / 2
             x2, y2 = dx, dy + dh / 2
-        midy = (y1 + y2) / 2
-        path = f"M{x1},{y1} L{x1},{midy} L{x2},{midy} L{x2},{y2}"
+            if x2 < x1:
+                x1, y1 = sx, sy + sh / 2
+                x2, y2 = dx + dw, dy + dh / 2
+            path = f"M{x1},{y1} L{x2},{y2}"
+            tx, ty = (x1 + x2) / 2, (y1 + y2) / 2
+        else:
+            # Vertical links get a small deterministic channel offset.
+            if dy > sy:
+                x1, y1 = sx + sw / 2, sy + sh
+                x2, y2 = dx + dw / 2, dy
+            else:
+                x1, y1 = sx + sw / 2, sy
+                x2, y2 = dx + dw / 2, dy + dh
+            channel_offset = ((edge_num - 1) % 5 - 2) * 7
+            midy = (y1 + y2) / 2 + channel_offset
+            path = f"M{x1},{y1} L{x1},{midy} L{x2},{midy} L{x2},{y2}"
+            tx, ty = (x1 + x2) / 2, midy
         parts.append(f'<path d="{path}" fill="none" stroke="#334155" stroke-width="1.5" '
                      'marker-end="url(#arr)"/>')
-        tx, ty = (x1 + x2) / 2, midy - 4
-        parts.append(f'<text x="{tx}" y="{ty}" text-anchor="middle" font-size="9" '
-                     f'font-family="system-ui" fill="#334155">{html.escape(label)}</text>')
+        # A compact numbered badge replaces the full edge label.
+        parts.append(f'<circle cx="{tx}" cy="{ty}" r="9" fill="#ffffff" '
+                     'stroke="#334155" stroke-width="1.2"/>')
+        parts.append(f'<text x="{tx}" y="{ty + 3.5}" text-anchor="middle" '
+                     'font-size="9" font-weight="700" font-family="system-ui" '
+                     f'fill="#334155">{edge_num}</text>')
     # Nodes.
     for _, x, y, w, h, cat, label in spec["nodes"]:
         cat_label, fill, stroke = CATEGORY[cat]
@@ -261,6 +297,22 @@ def make_svg(spec):
         parts.append(f'<text x="{lx+17}" y="585" font-size="9.5" font-family="system-ui" '
                      f'fill="#334155">{html.escape(label)}</text>')
         lx += 205
+    parts.append('<text x="60" y="619" font-size="11" font-weight="700" '
+                 'font-family="system-ui" fill="#0f172a">连接关系</text>')
+    for edge_num, (_, _, label) in enumerate(spec["edges"], start=1):
+        col = 0 if edge_num <= 5 else 1
+        row = edge_num - 1 if col == 0 else edge_num - 6
+        x = 60 + col * 530
+        y = 628 + row * 34
+        parts.append(f'<rect x="{x}" y="{y}" width="490" height="27" rx="5" '
+                     'fill="#f8fafc" stroke="#cbd5e1"/>')
+        parts.append(f'<circle cx="{x+16}" cy="{y+13.5}" r="8" fill="#ffffff" '
+                     'stroke="#334155"/>')
+        parts.append(f'<text x="{x+16}" y="{y+17}" text-anchor="middle" '
+                     'font-size="8.5" font-weight="700" font-family="system-ui" '
+                     f'fill="#334155">{edge_num}</text>')
+        parts.append(f'<text x="{x+31}" y="{y+17}" font-size="9.2" '
+                     f'font-family="system-ui" fill="#334155">{html.escape(label)}</text>')
     parts.append("</svg>")
     (OUT / f"{spec['file']}.svg").write_text("".join(parts), encoding="utf-8")
 
