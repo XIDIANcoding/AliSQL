@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>数据库厂商“库 + 仓 + AI”共同趋势、解决方案与客户分析</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #fff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #dbe4ef;
+      --navy: #0f172a;
+      --blue: #2563eb;
+      --cyan: #0891b2;
+      --green: #16a34a;
+      --orange: #ea580c;
+      --soft-blue: #eff6ff;
+      --soft-green: #f0fdf4;
+      --soft-orange: #fff7ed;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+    .page { max-width: 1380px; margin: auto; padding: 28px 22px 64px; }
+    header {
+      color: #fff;
+      background: var(--navy);
+      border-radius: 20px;
+      padding: 42px 44px;
+    }
+    header h1 { margin: 0 0 12px; font-size: 31px; line-height: 1.3; }
+    header p { margin: 7px 0; color: #cbd5e1; }
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .tag {
+      border: 1px solid #ffffff38;
+      background: #ffffff12;
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-size: 12px;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+      padding: 10px;
+      background: #f8fafcee;
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    nav a {
+      color: #1e3a8a;
+      text-decoration: none;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      margin: 20px 0;
+      padding: 27px 30px;
+    }
+    h2 {
+      margin: 0 0 16px;
+      font-size: 22px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 9px;
+    }
+    h3 { margin-top: 26px; color: #1e3a8a; }
+    p { margin: 9px 0; }
+    a { color: #0369a1; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .summary {
+      background: var(--soft-blue);
+      border-left: 5px solid var(--blue);
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .note {
+      background: var(--soft-orange);
+      border-left: 5px solid var(--orange);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin: 16px 0;
+    }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin: 14px 0 22px;
+    }
+    table {
+      width: 100%;
+      min-width: 960px;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #fff;
+    }
+    th, td {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #eaf0f7;
+      color: #1e293b;
+      font-weight: 700;
+    }
+    tr:last-child td { border-bottom: 0; }
+    th:last-child, td:last-child { border-right: 0; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    .vendor {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-weight: 700;
+      white-space: nowrap;
+      color: #fff;
+      background: var(--blue);
+    }
+    .oceanbase { background: #2563eb; }
+    .oracle { background: #dc2626; }
+    .polardb { background: #7c3aed; }
+    .databricks { background: #ea580c; }
+    .snowflake { background: #0284c7; }
+    .aws { background: #ca8a04; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .mini {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 15px 17px;
+      background: #fbfdff;
+    }
+    .mini h3 { margin: 0 0 8px; font-size: 16px; }
+    .mini ul { padding-left: 19px; margin: 7px 0; }
+    .mini li { margin: 5px 0; }
+    .sources li { margin: 7px 0; overflow-wrap: anywhere; }
+    footer { text-align: center; color: var(--muted); font-size: 12px; }
+    @media (max-width: 900px) {
+      header { padding: 30px 23px; }
+      header h1 { font-size: 25px; }
+      section { padding: 21px 16px; }
+      .grid { grid-template-columns: 1fr; }
+      nav { position: static; }
+    }
+  </style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <h1>数据库厂商“库 + 仓 + AI”共同趋势、解决方案与客户分析</h1>
+    <p>研究对象：Oracle、PolarDB、OceanBase、Databricks、Snowflake、AWS</p>
+    <p>分析维度：数据架构、数据库内核、模型与 SQL、语义与 Agent、知识图谱、解决方案和客户画像</p>
+    <div class="tags">
+      <span class="tag">HTAP</span><span class="tag">Lakehouse</span>
+      <span class="tag">AI Function</span><span class="tag">Hybrid Search</span>
+      <span class="tag">NL2SQL</span><span class="tag">Agent</span>
+      <span class="tag">Knowledge Graph</span><span class="tag">AI Governance</span>
+    </div>
+  </header>
+
+  <nav>
+    <a href="#summary">核心结论</a>
+    <a href="#architecture">架构趋势</a>
+    <a href="#kernel">内核趋势</a>
+    <a href="#model">模型与 SQL</a>
+    <a href="#agent">语义与 Agent</a>
+    <a href="#graph">知识与图</a>
+    <a href="#vendors">厂商与客户</a>
+    <a href="#solutions">解决方案</a>
+    <a href="#customers">客户类型</a>
+    <a href="#sources">资料来源</a>
+  </nav>
+
+  <section id="summary">
+    <h2>一、核心结论</h2>
+    <div class="summary">
+      <p><strong>共同趋势不是简单的“自然语言 + Agent + 知识图谱”，而是围绕企业既有数据，统一事务、分析、全文、向量、模型计算、语义治理和 Agent 访问。</strong></p>
+      <p>关系数据库厂商从 TP 内核向 AP、向量、AI Function 和开放湖扩展；数仓和湖仓厂商从 AP/湖数据向 OLTP、实时服务和 Agent 状态管理扩展。两条路线最终汇聚到统一、开放、可治理的企业 AI 数据底座。</p>
+    </div>
+    <div class="note">
+      知识图谱是金融风险、供应链、设备拓扑等关系密集场景的高价值能力，但不是所有客户的基础配置。更普遍的共同能力是 HTAP、混合检索、企业 RAG、自然语言分析、Agent 和统一治理。
+    </div>
+  </section>
+
+  <section id="architecture">
+    <h2>二、数据与架构层共同趋势</h2>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>趋势</th><th>核心含义</th><th>Oracle</th><th>PolarDB</th>
+        <th>OceanBase</th><th>Databricks</th><th>Snowflake / AWS</th><th>产品启示</th>
+      </tr></thead>
+      <tbody>
+      <tr><td>AI 向既有数据靠近</td><td>不再先建设独立 AI 数据孤岛</td><td>Vector、Graph、ONNX、Select AI 进入数据库体系</td><td>事务数据上增加 IMCI、AI Node、Data-Agent</td><td>增加向量、全文、语义索引和 AI Function</td><td>Agent Bricks、Genie、AI Search 使用 Unity Catalog 数据</td><td>Cortex 使用仓内数据；AWS Zero-ETL 接入业务数据</td><td>直接复用现有表、事务、权限和客户数据模型</td></tr>
+      <tr><td>TP/AP 专用引擎</td><td>事务和分析使用不同执行路径</td><td>Buffer Cache 行格式 + IM Column Store</td><td>InnoDB 行存 + IMCI/RO AP 节点</td><td>分布式 HTAP 与混合行列能力</td><td>Lakebase Postgres + Lakehouse//RT</td><td>Aurora + Redshift；Snowflake Virtual Warehouse</td><td>AP 节点应成为正式数据智能节点</td></tr>
+      <tr><td>减少外部 ETL</td><td>客户不再维护 Kafka/Flink/CDC 链路</td><td>数据库后台进程维护列格式</td><td>Redo/物理复制维护 IMCI</td><td>HTAP 与 External Catalog 原位查询</td><td>LTAP 存储层转码、单一逻辑副本</td><td>AWS Zero-ETL 托管复制</td><td>提供延迟水位、恢复与一致性语义</td></tr>
+      <tr><td>存算分离</td><td>计算独立弹性，存储持久化</td><td>Autonomous/Exadata</td><td>PolarStore + RW/RO 节点</td><td>Lakebase 对象存储和弹性计算路线</td><td>无状态 Postgres + Pageserver/Safekeeper/Object Storage</td><td>Snowflake、Redshift、S3</td><td>AP、AI、Agent 负载独立扩缩，保护 TP</td></tr>
+      <tr><td>开放湖表格式</td><td>采用 Iceberg、Delta、Parquet</td><td>Autonomous AI Lakehouse 访问 Iceberg</td><td>持续接入 OSS/数据湖生态</td><td>External Catalog 接入 Iceberg/Hive/Parquet</td><td>Delta/Iceberg 为核心格式</td><td>Polaris/Iceberg；Glue/Iceberg</td><td>先做只读原位查询，再扩展一致写</td></tr>
+      <tr><td>统一 Catalog</td><td>数据、模型、向量、Agent 统一治理</td><td>Autonomous Catalog</td><td>PolarDB/DMS/模型元数据</td><td>External Catalog 与统一 Catalog 路线</td><td>Unity Catalog</td><td>Horizon Catalog、Glue Catalog</td><td>Catalog 覆盖表、文档、索引、模型、Prompt、Agent、Tool</td></tr>
+      <tr><td>Serverless 弹性</td><td>承载突发 AI 与 Agent 负载</td><td>Autonomous Serverless</td><td>AI Serverless / VNode</td><td>计算弹性和按需唤醒路线</td><td>Serverless SQL、AI Search、Model Serving</td><td>Snowflake/Redshift Serverless</td><td>大型模型和 Embedding 与 TP 解耦</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="kernel">
+    <h2>三、数据库内核与查询能力趋势</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>趋势</th><th>技术内容</th><th>典型实践</th><th>解决的问题</th><th>研发要求</th></tr></thead>
+      <tbody>
+      <tr><td>原生 Vector 类型</td><td>向量成为数据库一等数据类型</td><td>Oracle VECTOR、OceanBase Vector、PolarDB Vector、Databricks AI Search</td><td>避免业务主表与向量库漂移</td><td>类型、距离函数、序列化、统计信息和权限</td></tr>
+      <tr><td>ANN 向量索引</td><td>HNSW、IVF 等近似搜索</td><td>Oracle HNSW/IVF、OceanBase HNSW、PolarDB 向量索引</td><td>大规模向量低延迟检索</td><td>增量、删除、恢复、备份与成本估算</td></tr>
+      <tr><td>全文+向量混合搜索</td><td>BM25 与语义向量联合召回</td><td>OceanBase、Databricks AI Search、Snowflake Cortex Search</td><td>提升专有名词、编号和语义检索质量</td><td>融合排序、Rerank、多路召回执行器</td></tr>
+      <tr><td>结构化+向量查询</td><td>业务条件过滤与向量检索统一 SQL</td><td>Oracle、OceanBase、PolarDB</td><td>满足租户、地区、时间、状态等业务约束</td><td>CBO 选择过滤优先或向量召回优先</td></tr>
+      <tr><td>多模态数据管理</td><td>文本、图片、音视频、JSON、向量统一关联</td><td>OceanBase 多模表路线、Oracle Converged DB、Databricks Lakehouse</td><td>减少对象存储和专用系统之间的数据孤岛</td><td>LOB、对象引用、元数据、生命周期与权限</td></tr>
+      <tr><td>列式向量化执行</td><td>SIMD、列裁剪、压缩、批处理</td><td>Oracle In-Memory、PolarDB IMCI、Databricks Photon</td><td>提升分析、特征和 AI 数据准备效率</td><td>列存、Hash Join、聚合、窗口与资源隔离</td></tr>
+      <tr><td>图查询与多跳推理</td><td>路径、传播、社区、中心性分析</td><td>Oracle Property Graph、Databricks GraphFrames/Neo4j、OceanBase 上下文图谱路线</td><td>解决向量无法表达的复杂关系问题</td><td>先用实体/边表，再演进 Property Graph 执行器</td></tr>
+      <tr><td>AI 结果版本化</td><td>Embedding、标签、摘要绑定数据和模型版本</td><td>AI 列路线、MLflow、Unity Catalog</td><td>模型升级后仍可追溯、重算和回滚</td><td>保存 model/prompt/source_lsn/version/status/error</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="model">
+    <h2>四、AI 模型与 SQL 融合趋势</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>趋势</th><th>主要能力</th><th>厂商实践</th><th>推荐部署位置</th><th>风险与要求</th></tr></thead>
+      <tbody>
+      <tr><td>AI Function</td><td>AI_EMBED、COMPLETE、RERANK、EXTRACT、PREDICT</td><td>OceanBase、PolarDB、Snowflake、Oracle</td><td>SQL/权限在数据库；模型执行在 AI Node/Gateway</td><td>避免模型调用阻塞 TP 事务线程</td></tr>
+      <tr><td>库内轻量模型</td><td>ONNX Embedding、分类模型</td><td>Oracle 本地 ONNX</td><td>数据库 Runtime 或专用线程池</td><td>限制模型大小、资源和执行超时</td></tr>
+      <tr><td>独立 AI Node</td><td>GPU、大模型、训练和推理</td><td>PolarDB AI Node、Databricks Model Serving</td><td>独立节点、K8s、Serverless</td><td>低延迟网络、鉴权、弹性与资源隔离</td></tr>
+      <tr><td>Model Gateway</td><td>多模型路由、Key、限流、重试、熔断</td><td>Databricks AI Gateway、模型 endpoint 管理</td><td>独立管控服务</td><td>费用、合规、供应商切换和数据出域</td></tr>
+      <tr><td>异步 AI Job</td><td>批量 Embedding、抽取、摘要和回填</td><td>Databricks Pipeline、PolarDB MLOps、AI 列路线</td><td>AP + AI Worker</td><td>幂等、断点、重试、版本和任务水位</td></tr>
+      <tr><td>模型可观测性</td><td>延迟、Token、费用、错误和质量</td><td>MLflow、AI Gateway、数据库调用视图</td><td>管控面</td><td>关联用户、SQL、Prompt、模型和数据版本</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="agent">
+    <h2>五、语义、自然语言与 Agent 趋势</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>趋势</th><th>能力形态</th><th>厂商代表</th><th>底层依赖</th><th>客户价值</th></tr></thead>
+      <tbody>
+      <tr><td>NL2SQL</td><td>自然语言生成、校验并执行 SQL</td><td>Select AI、Data-Agent、Genie、Cortex Analyst</td><td>Schema、语义层、Verified Query、权限</td><td>业务人员无需 SQL 即可分析数据</td></tr>
+      <tr><td>NL2Chart</td><td>自动生成可视化</td><td>PolarDB Data-Agent、Databricks AI/BI</td><td>指标口径、图表模型、查询结果</td><td>减少 BI 报表开发</td></tr>
+      <tr><td>Semantic View</td><td>指标、维度、同义词和 Join 定义</td><td>Snowflake、Databricks、OceanBase OSI/DataPilot</td><td>Catalog、血缘和业务术语</td><td>提升准确率和口径一致性</td></tr>
+      <tr><td>Knowledge Assistant</td><td>基于文档的带引用问答</td><td>Databricks、Oracle、OceanBase、Snowflake、PolarDB</td><td>解析、全文、向量、Rerank</td><td>快速构建企业知识助手</td></tr>
+      <tr><td>Supervisor Agent</td><td>编排多个 Agent、Tool 与外部 API</td><td>Databricks、Oracle、Snowflake</td><td>MCP、Tool、身份传递、审计</td><td>完成跨数据和跨系统复杂任务</td></tr>
+      <tr><td>MCP Server</td><td>标准化 Agent 数据和工具访问</td><td>Oracle、Databricks、OceanBase、Snowflake</td><td>OAuth、Token、权限和工具注册</td><td>降低 Agent 接入成本</td></tr>
+      <tr><td>Agent Memory</td><td>会话、长期经验和任务状态</td><td>OceanBase PowerMem、Oracle Agent Memory、Agent Lakebase</td><td>表、向量、生命周期和版本</td><td>持续理解用户和任务</td></tr>
+      <tr><td>Agent 沙箱</td><td>隔离、克隆、回滚和安全合并</td><td>OceanBase Fork、Lakebase Branch、PolarDB Agent Lakebase</td><td>Copy-on-Write、快照和权限</td><td>支持 Agent 安全试错和写操作</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="graph">
+    <h2>六、知识与图能力趋势</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>能力方向</th><th>行业成熟度</th><th>厂商实践</th><th>适用场景</th><th>产品建议</th></tr></thead>
+      <tbody>
+      <tr><td>企业文档 RAG</td><td>已成为共同标准能力</td><td>六家厂商均有对应方案</td><td>制度、产品、研发、客服、运维</td><td>优先标准化交付</td></tr>
+      <tr><td>业务数据+文档联合问答</td><td>正在成为主流</td><td>Oracle Agent、Analyst+Search、Supervisor、OceanBase RAG</td><td>政策+订单、知识+客户状态</td><td>数据库厂商相对向量库的核心差异</td></tr>
+      <tr><td>知识图谱</td><td>高价值但非基础必选</td><td>Oracle 原生 Graph；Databricks+Neo4j/GraphFrames；OceanBase 路线</td><td>风险、供应链、设备、客户关系</td><td>作为行业专业版能力</td></tr>
+      <tr><td>GraphRAG</td><td>持续发展</td><td>Oracle Vector+Graph、Databricks GraphRAG</td><td>多跳问答和关系解释</td><td>先解决实体消歧和图谱质量</td></tr>
+      <tr><td>实体消歧</td><td>知识图谱关键难点</td><td>向量匹配、规则和图邻居组合</td><td>客户、供应商、账户统一</td><td>提供审核、拆分和回滚</td></tr>
+      <tr><td>增量图谱</td><td>尚在持续成熟</td><td>Redo/CDC/Delta 驱动更新</td><td>实时风险、客户、供应链</td><td>支持删除传播、时态关系和模型重算</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="vendors">
+    <h2>七、厂商解决方案与公开客户</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>厂商</th><th>架构路线</th><th>主要解决方案</th><th>公开客户</th><th>公开场景与效果</th></tr></thead>
+      <tbody>
+      <tr><td><span class="vendor oracle">Oracle</span></td><td>OLTP → In-Memory AP → Vector/Graph/Select AI → Iceberg Lakehouse</td><td>语义搜索、RAG、NL2SQL、Agent、反欺诈、开放湖仓</td><td>Retraced、Rappi、Uniti、DeweyVision</td><td>Retraced 重复记录减少约 80%；Rappi 搜索响应延迟降低约 40%；Uniti 智能客服；DeweyVision 媒体搜索</td></tr>
+      <tr><td><span class="vendor polardb">PolarDB</span></td><td>InnoDB TP → IMCI → AI Node/Serverless → Data-Agent</td><td>实时 HTAP、ChatBI、RAG、SQL MLOps、大模型推理、Agent Workspace</td><td>雅迪；另有未具名游戏和广告行业案例</td><td>雅迪 10 万+ 销售/经销商使用，官方披露 NL2SQL 准确率超过 90%</td></tr>
+      <tr><td><span class="vendor oceanbase">OceanBase</span></td><td>分布式 OLTP → HTAP → 向量/全文/AI Function → Lakebase/Agent</td><td>RAG、数仓答疑、代码风险、图片检索、推荐、ChatDBA、Agent 沙箱</td><td>蚂蚁阿福、灵光、中国联通、货拉拉、携程、当贝、视源股份等</td><td>阿福沙箱资源减少约 30%；灵光约 3000 万闪应用；联通资源节省约 30%；货拉拉资损代码和数仓答疑</td></tr>
+      <tr><td><span class="vendor databricks">Databricks</span></td><td>Delta Lake → Unity Catalog → AI Search/Genie → Agent Bricks → Lakebase/LTAP</td><td>知识助手、自然语言分析、多 Agent、Agent 开发平台、GraphRAG、LTAP</td><td>FinThrive、7-Eleven、Corning</td><td>FinThrive 数小时上线 Agent，Genie 将查询响应从 3～5 天降到分钟；7-Eleven 营销分析；Corning 研发知识问答</td></tr>
+      <tr><td><span class="vendor snowflake">Snowflake</span></td><td>云数仓 → Horizon/Iceberg → Cortex Search/Analyst → Cortex Agents</td><td>自然语言分析、知识库、非结构化分析、Agent、开放湖仓治理</td><td>Thomson Reuters；Bayer、Medtronic 等公开分享客户</td><td>Thomson Reuters 使用 Cortex Analyst 自动分析客服案例并加速洞察</td></tr>
+      <tr><td><span class="vendor aws">AWS</span></td><td>Aurora/RDS → Zero-ETL → Redshift/SageMaker Lakehouse → Bedrock</td><td>实时分析、开放湖仓、AI/ML、RAG、模型训练与推理</td><td>MassPay</td><td>官方披露数据延迟降低约 90%，Time-to-insight 减少约 45%，交易可见性相关工单减少约 37%</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="solutions">
+    <h2>八、行业集中交付的解决方案</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>解决方案</th><th>核心能力组合</th><th>目标行业</th><th>代表实践</th><th>客户价值</th></tr></thead>
+      <tbody>
+      <tr><td>实时经营分析与 ChatBI</td><td>TP + AP + Semantic View + NL2SQL + 图表与总结</td><td>零售、制造、物流、SaaS、金融运营</td><td>Data-Agent、Genie、Select AI、Cortex Analyst、DataPilot</td><td>直接分析最新业务数据，减少 T+1 和人工报表</td></tr>
+      <tr><td>企业知识库与业务问答</td><td>文档 + 业务表 + 全文 + 向量 + Rerank + RAG</td><td>政企、运营商、金融、医疗、制造</td><td>Knowledge Assistant、Oracle RAG、OceanBase RAG、Cortex Search</td><td>知识与实时业务状态统一回答</td></tr>
+      <tr><td>搜索与推荐</td><td>结构化过滤 + BM25 + Vector + 行为特征 + 融合排序</td><td>电商、旅游、内容、招聘、广告</td><td>Rappi、携程、当贝、7-Eleven</td><td>提升召回、相关性和个性化</td></tr>
+      <tr><td>反欺诈与风险分析</td><td>交易 + 实时特征 + 向量 + 图关系 + 模型 + 证据链</td><td>银行、支付、保险、电商</td><td>Oracle Vector+Graph+Agent 路线</td><td>团伙识别、风险传播和可解释决策</td></tr>
+      <tr><td>供应链知识图谱</td><td>供应商/BOM/订单/合同/质检 + 消歧 + GraphRAG</td><td>制造、汽车、医药、零售</td><td>Retraced、GraphRAG 参考架构</td><td>供应商穿透、替代关系和风险传播</td></tr>
+      <tr><td>文档智能与 AI ETL</td><td>OCR、分类、字段抽取、实体关系抽取、摘要和回填</td><td>全行业</td><td>AI Function、AI Worker、Lakehouse Pipeline</td><td>把非结构化文档变成可分析业务数据</td></tr>
+      <tr><td>数据库开发与运维 Agent</td><td>SQL 诊断、元数据问答、代码和管道知识、运维 RAG</td><td>DBA、数据团队、研发、运维</td><td>ChatDBA、FinThrive、货拉拉数仓答疑</td><td>降低专家依赖和排障时间</td></tr>
+      <tr><td>Agent 数据基础设施</td><td>MCP、Memory、Tool、状态、沙箱、分支和审计</td><td>AI SaaS、企业 AI 中台、垂直应用</td><td>Agent Bricks、Select AI Agent、Fork、Agent Lakebase</td><td>让 Agent 安全读写企业业务状态</td></tr>
+      <tr><td>开放湖仓与 AI 训练</td><td>Iceberg、Catalog、多引擎、Spark/Ray、训练和特征</td><td>大数据量企业和既有湖仓客户</td><td>Databricks、Oracle Lakehouse、AWS、Snowflake、OceanBase Lakebase</td><td>统一湖、仓、分析和 AI 开发</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="customers">
+    <h2>九、客户类型与推荐产品</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>客户类型</th><th>主要痛点</th><th>推荐解决方案</th><th>重点能力</th><th>适合参考的厂商实践</th></tr></thead>
+      <tbody>
+      <tr><td>金融、支付、保险</td><td>一致性、实时风控、数据不出域、审计</td><td>HTAP、风险图谱、混合检索、Agent 审计</td><td>事务、AP、Vector、Graph、RLS、证据链</td><td>Oracle、OceanBase、PolarDB</td></tr>
+      <tr><td>制造、汽车、供应链</td><td>供应商、质量、设备、合同和文档分散</td><td>供应链图谱、设备图谱、实时分析、文档智能</td><td>Ontology、实体消歧、GraphRAG、AP</td><td>Oracle、Databricks、OceanBase</td></tr>
+      <tr><td>零售、电商、内容</td><td>搜索、推荐、客户运营和实时分析</td><td>混合搜索、客户 360、营销 Agent、ChatBI</td><td>全文、向量、行为特征、语义层</td><td>Rappi、7-Eleven、OceanBase 客户</td></tr>
+      <tr><td>运营商、能源、工业</td><td>设备拓扑、故障和运维知识复杂</td><td>运维 RAG、设备图谱、根因分析 Agent</td><td>图关系、时序指标、工单、知识库</td><td>中国联通、Databricks/Snowflake 方案</td></tr>
+      <tr><td>政企、医疗</td><td>安全、合规、知识问答和私有化</td><td>企业知识库、自然语言分析、私有模型</td><td>RLS、审计、数据不出域、本地模型</td><td>Oracle、Databricks、OceanBase</td></tr>
+      <tr><td>AI SaaS / Agent 平台</td><td>Memory、状态、Tool、沙箱和多租户</td><td>Agent 数据底座</td><td>MCP、分支、快照、权限、审计</td><td>Agent Bricks、Fork、Agent Lakebase</td></tr>
+      <tr><td>既有湖仓客户</td><td>数据治理复杂、AI 开发分散</td><td>统一 Catalog、AI Search、Agent、LTAP</td><td>Iceberg/Delta、语义、模型治理</td><td>Databricks、Snowflake、AWS</td></tr>
+      <tr><td>既有核心数据库客户</td><td>T+1 分析、多套同步链路</td><td>AP 节点、HTAP、AI Function、ChatBI</td><td>Redo 同步、列存、混合检索、AI Node</td><td>Oracle、PolarDB、OceanBase</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>十、总体趋势归纳</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>层级</th><th>共同趋势</th><th>最终产品形态</th></tr></thead>
+      <tbody>
+      <tr><td>存储层</td><td>行存、列存、对象存储与开放湖表协同</td><td>统一数据底座</td></tr>
+      <tr><td>计算层</td><td>TP、AP、搜索、向量、图、AI 使用专门引擎</td><td>多引擎协同</td></tr>
+      <tr><td>同步层</td><td>Redo、共享存储、存储转码或托管 Zero-ETL</td><td>客户无需自建 ETL</td></tr>
+      <tr><td>查询层</td><td>SQL、全文、向量、图关系和 Rerank 融合</td><td>混合查询引擎</td></tr>
+      <tr><td>模型层</td><td>AI Function + 独立 AI Node/Serverless</td><td>模型即数据算子</td></tr>
+      <tr><td>语义层</td><td>指标、术语、Ontology、Verified Query</td><td>企业语义平台</td></tr>
+      <tr><td>应用层</td><td>ChatBI、知识助手、搜索推荐、知识图谱</td><td>数据智能应用</td></tr>
+      <tr><td>Agent 层</td><td>MCP、Memory、Tool、沙箱、分支、审计</td><td>Agent 数据平台</td></tr>
+      <tr><td>治理层</td><td>数据、模型、向量、Agent、Tool 统一权限</td><td>AI 治理控制面</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="sources" class="sources">
+    <h2>十一、主要官方资料</h2>
+    <ul>
+      <li><a href="https://www.oracle.com/database/ai-native-database-26ai/">Oracle AI Database 26ai</a></li>
+      <li><a href="https://www.oracle.com/autonomous-database/autonomous-ai-lakehouse/">Oracle Autonomous AI Lakehouse</a></li>
+      <li><a href="https://www.oracle.com/customers/retraced/">Oracle 客户案例：Retraced</a></li>
+      <li><a href="https://www.oracle.com/customers/rappi/">Oracle 客户案例：Rappi</a></li>
+      <li><a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/user-guide/technical-background-and-architecture-of-column-store-index">PolarDB IMCI 架构</a></li>
+      <li><a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/db-agent/">PolarDB Data-Agent</a></li>
+      <li><a href="https://help.aliyun.com/en/polardb/polardb-for-mysql/electric-vehicle-manufacturing-yadi-technology-group-co-ltd">PolarDB 客户案例：雅迪</a></li>
+      <li><a href="https://www.oceanbase.com/solution/ai">OceanBase AI 数据库与客户案例</a></li>
+      <li><a href="https://www.oceanbase.com/customer/huolala">OceanBase 客户案例：货拉拉</a></li>
+      <li><a href="https://www.oceanbase.com/customer/chinaunicom-software">OceanBase 客户案例：中国联通软研院</a></li>
+      <li><a href="https://docs.databricks.com/aws/en/oltp/projects/ltap-overview">Databricks LTAP</a></li>
+      <li><a href="https://docs.databricks.com/aws/en/agents/">Databricks Agent Bricks / Agents</a></li>
+      <li><a href="https://www.databricks.com/customers/finthrive/agent-bricks">Databricks 客户案例：FinThrive Agent Bricks</a></li>
+      <li><a href="https://www.databricks.com/customers/7-eleven">Databricks 客户案例：7-Eleven</a></li>
+      <li><a href="https://www.databricks.com/customers/corning-mosaic-ai">Databricks 客户案例：Corning</a></li>
+      <li><a href="https://www.snowflake.com/en/customers/all-customers/video/thomson-reuters/">Snowflake 客户案例：Thomson Reuters</a></li>
+      <li><a href="https://aws.amazon.com/sagemaker/lakehouse/">AWS SageMaker Lakehouse</a></li>
+      <li><a href="https://aws.amazon.com/blogs/big-data/powering-global-payout-intelligence-how-masspay-uses-amazon-redshift-serverless-and-zero-etl-to-drive-deeper-analytics/">AWS 客户案例：MassPay</a></li>
+    </ul>
+  </section>
+
+  <footer>本报告基于厂商官方文档、官方产品页、官方博客与官方客户案例整理 · 2026-08-17</footer>
+</main>
+</body>
+</html>
