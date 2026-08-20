@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>腾讯云 ChatBI 组件交互与分层部署架构图（基于官方材料还原）</title>
+<style>
+  :root {
+    --text-main: #0f172a;
+    --text-muted: #475569;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f8fafc;
+    color: var(--text-main);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px 60px; }
+  .banner {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #fff; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px;
+  }
+  .banner h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .banner p { font-size: 13.5px; color: #94a3b8; }
+  section {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 26px 28px; margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 18px; font-weight: 700; margin-bottom: 14px;
+    border-bottom: 2px solid #eff6ff; padding-bottom: 8px;
+  }
+  h3 { font-size: 15px; font-weight: 700; margin: 18px 0 10px; color: #1e293b; }
+  p.note { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+  .diagram { border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: #fff; overflow-x: auto; }
+  .legend-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; margin-top: 16px;
+  }
+  .legend-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 7px 10px; font-size: 12.5px; color: #334155;
+  }
+  .legend-num {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid #334155; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; background: #fff; margin-top: 1px;
+  }
+  .legend-num.llm { border-color: #7c3aed; color: #6d28d9; }
+  .legend-num.kb { border-color: #d97706; color: #b45309; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { background: #f1f5f9; text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #334155; }
+  tr:last-child td { border-bottom: none; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag-cloud { background: #e0f2fe; color: #0369a1; }
+  .tag-user { background: #fef3c7; color: #92400e; }
+  .tag-llm { background: #ede9fe; color: #6d28d9; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul.src { padding-left: 20px; font-size: 13.5px; }
+  ul.src li { margin-bottom: 6px; }
+  @media (max-width: 800px) { .legend-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="banner">
+    <h1>腾讯云 ChatBI 组件交互与分层部署架构图</h1>
+    <p>组件名称均取自腾讯官方技术文章与产品手册的真实专属名称 · 六层部署架构 + 落地开发能力清单 · 针对「已有 MySQL + 库内对接大模型」场景标注仍需开发项与开源替代</p>
+  </div>
+
+  <section>
+    <h2>一、整体组件交互图（按部署位置分层）</h2>
+    <p class="note">数字编号 1~14 为主流程顺序；字母 <strong>L</strong>（紫色）为大模型调用总线、<strong>K</strong>（琥珀色）为知识库检索总线，具体哪些步骤经过 L / K 见下方图例与各组件右下角的「● LLM / ● 知识库」徽标。实线为主查询链路，虚线为回传/反馈链路。</p>
+    <div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 1080" width="100%" height="auto" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#334155"/>
+    </marker>
+    <marker id="arrP" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#7C3AED"/>
+    </marker>
+    <marker id="arrK" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#D97706"/>
+    </marker>
+    <marker id="arrO" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#B45309"/>
+    </marker>
+    <marker id="arrG" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#94A3B8"/>
+    </marker>
+    <marker id="arrE" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#059669"/>
+    </marker>
+  </defs>
+
+  <text x="1210" y="13" font-size="10" fill="#64748B" text-anchor="end">徽标：<tspan fill="#6D28D9" font-weight="700">● LLM</tspan>=该组件调用大模型　<tspan fill="#B45309" font-weight="700">● 知识库</tspan>=该组件检索知识库</text>
+
+  <!-- ================= Layer 1: 应用层 ================= -->
+  <rect x="30" y="20" width="1180" height="130" rx="10" fill="#F0F9FF" stroke="#BAE6FD" stroke-width="1.2"/>
+  <rect x="30" y="20" width="1180" height="28" rx="10" fill="#0284C7"/>
+  <text x="44" y="39" font-size="13" font-weight="700" fill="#FFFFFF">应用层（接入与消费端）</text>
+  <text x="1196" y="39" font-size="11" fill="#E0F2FE" text-anchor="end">部署位置：用户侧多终端（PC / 小程序 / H5 / 第三方系统）</text>
+
+  <rect x="45" y="58" width="200" height="77" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="78" font-size="12" font-weight="700" fill="#0369A1">腾讯云 BI 控制台（PC 端）</text>
+  <text x="55" y="96" font-size="10.5" fill="#475569">选表提问 · 引导语示例提问</text>
+  <text x="55" y="112" font-size="10.5" fill="#475569">数据表预览</text>
+
+  <rect x="260" y="58" width="200" height="77" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="270" y="78" font-size="12" font-weight="700" fill="#0369A1">ChatBI 小程序 / H5</text>
+  <text x="270" y="96" font-size="10.5" fill="#475569">扫码移动端问数</text>
+
+  <rect x="475" y="58" width="250" height="77" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="485" y="78" font-size="12" font-weight="700" fill="#0369A1">ChatBI 嵌出（第三方系统集成）</text>
+  <text x="485" y="96" font-size="10.5" fill="#475569">Token 鉴权（authType=strong）</text>
+  <text x="485" y="112" font-size="10.5" fill="#475569">SqlView 显示开关 · TableFilter 表过滤</text>
+
+  <rect x="740" y="58" width="330" height="77" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="750" y="78" font-size="12" font-weight="700" fill="#0369A1">结果交互组件</text>
+  <text x="750" y="96" font-size="10.5" fill="#475569">展开推理（SQL 白盒校验） · 图表一键切换</text>
+  <text x="750" y="112" font-size="10.5" fill="#475569">点赞点踩反馈 · 一键导出分享 · 插入看板固化</text>
+
+  <!-- ================= Layer 2: Agent 层 ================= -->
+  <rect x="30" y="170" width="860" height="430" rx="10" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1.2"/>
+  <rect x="30" y="170" width="860" height="28" rx="10" fill="#2563EB"/>
+  <text x="44" y="189" font-size="13" font-weight="700" fill="#FFFFFF">Agent 层（AI 中间处理流水线）</text>
+  <text x="876" y="189" font-size="11" fill="#DBEAFE" text-anchor="end">部署位置：腾讯云 BI 服务端（SaaS / 私有化 / 混合云）</text>
+
+  <!-- Row 1 -->
+  <rect x="45" y="210" width="160" height="88" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="230" font-size="12" font-weight="700" fill="#1D4ED8">多轮对话模块</text>
+  <text x="55" y="248" font-size="10.5" fill="#475569">基于历史提问语义信息</text>
+  <text x="55" y="264" font-size="10.5" fill="#475569">生成完整的独立提问</text>
+  <text x="55" y="286" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM</text>
+
+  <rect x="235" y="210" width="170" height="88" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="245" y="230" font-size="12" font-weight="700" fill="#1D4ED8">意图分类模块</text>
+  <text x="245" y="248" font-size="10.5" fill="#475569">与分析无关 → 拒识</text>
+  <text x="245" y="264" font-size="10.5" fill="#475569">时间/主体完整 或 缺失</text>
+  <text x="245" y="286" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM</text>
+
+  <rect x="435" y="210" width="220" height="110" rx="6" fill="#FFFFFF" stroke="#F59E0B" stroke-width="1.4"/>
+  <text x="445" y="230" font-size="12" font-weight="700" fill="#B45309">意图澄清模块</text>
+  <text x="445" y="248" font-size="10.5" fill="#475569">① 追问缺失的时间和主体</text>
+  <text x="445" y="264" font-size="10.5" fill="#475569">② ES + 数据表知识库分词召回（粗排）</text>
+  <text x="445" y="280" font-size="10.5" fill="#475569">③ LLM + 向量相似度打分（精排）</text>
+  <text x="445" y="296" font-size="10.5" fill="#475569">④ 构建澄清选项（必来自知识库）</text>
+  <text x="445" y="313" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM（精排）<tspan fill="#B45309">　● 知识库（粗排）</tspan></text>
+
+  <rect x="685" y="210" width="190" height="88" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="695" y="230" font-size="12" font-weight="700" fill="#1D4ED8">智能选表</text>
+  <text x="695" y="248" font-size="10.5" fill="#475569">表名/表备注/字段备注语义匹配</text>
+  <text x="695" y="264" font-size="10.5" fill="#475569">智能选单表 / 智能选多表关联</text>
+  <text x="695" y="286" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM<tspan fill="#B45309">　● 知识库（表结构）</tspan></text>
+
+  <!-- Row 2: 双通道（隔离） -->
+  <rect x="45" y="360" width="330" height="130" rx="6" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.4"/>
+  <text x="55" y="380" font-size="12" font-weight="700" fill="#1D4ED8">Text2DSL Multi-Agent 生成通道（复杂计算）</text>
+  <text x="55" y="400" font-size="10.5" fill="#475569">① 基本参数获取 Agent（Limit/Title/ChartType）</text>
+  <text x="55" y="416" font-size="10.5" fill="#475569">② 维度字段 DSL 生成 Agent（DimensionList）</text>
+  <text x="55" y="432" font-size="10.5" fill="#475569">③ 指标字段 DSL 生成 Agent（MeasureList）</text>
+  <text x="55" y="448" font-size="10.5" fill="#475569">④ 条件字段 DSL 生成 Agent（ConditionList）</text>
+  <text x="55" y="470" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM×4<tspan fill="#B45309">　● 知识库（口径/习惯/ICL 样本）</tspan></text>
+
+  <rect x="395" y="360" width="220" height="130" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="405" y="380" font-size="12" font-weight="700" fill="#1D4ED8">DSL 整合与正确性验证</text>
+  <text x="405" y="398" font-size="10.5" fill="#475569">综合四个 Agent 输出为完整 DSL</text>
+  <text x="405" y="414" font-size="10.5" fill="#475569">后处理 + JSON 协议校验</text>
+  <text x="405" y="434" font-size="10" fill="#94A3B8">DSL 与 BI 拖拽结构完全兼容，</text>
+  <text x="405" y="449" font-size="10" fill="#94A3B8">可在控制台二次编辑、固化进看板</text>
+  <text x="405" y="472" font-size="9.5" font-weight="700" fill="#64748B">⚙ 确定性工程代码 · 不调用大模型</text>
+
+  <!-- 通道隔离分隔线 -->
+  <line x1="635" y1="350" x2="635" y2="500" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="6,5"/>
+  <text x="635" y="343" font-size="9" fill="#64748B" text-anchor="middle">两条通道相互隔离</text>
+
+  <rect x="655" y="360" width="220" height="110" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="665" y="380" font-size="12" font-weight="700" fill="#1D4ED8">Text2SQL 生成通道（默认 · 简单查询）</text>
+  <text x="665" y="398" font-size="10.5" fill="#475569">大模型直接生成 MySQL 方言 SQL</text>
+  <text x="665" y="414" font-size="10.5" fill="#475569">局限：复杂计算不稳定、</text>
+  <text x="665" y="430" font-size="10.5" fill="#475569">方言转换工具维护成本高</text>
+  <text x="665" y="452" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM<tspan fill="#B45309">　● 知识库（口径/习惯/ICL）</tspan></text>
+
+  <!-- 双通道说明 note -->
+  <rect x="45" y="510" width="330" height="80" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-dasharray="5,4"/>
+  <text x="58" y="532" font-size="11.5" font-weight="700" fill="#0F172A">双通道分流说明（官方文章明确）</text>
+  <text x="58" y="552" font-size="10" fill="#475569">两条生成通道相互隔离、按问题复杂度分流：</text>
+  <text x="58" y="568" font-size="10" fill="#475569">简单查询 → Text2SQL；复杂计算 → Text2DSL</text>
+  <text x="58" y="584" font-size="10" fill="#475569">（区间同环比、组内排序等需多条 SQL 的场景）</text>
+
+  <!-- ================= Layer 3: 大模型层（右列） ================= -->
+  <rect x="910" y="170" width="300" height="190" rx="10" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1.2"/>
+  <rect x="910" y="170" width="300" height="28" rx="10" fill="#7C3AED"/>
+  <text x="924" y="189" font-size="13" font-weight="700" fill="#FFFFFF">大模型层</text>
+  <text x="1196" y="189" font-size="10.5" fill="#EDE9FE" text-anchor="end">腾讯云侧 / 私有化 GPU（可选）</text>
+
+  <rect x="925" y="208" width="270" height="38" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="938" y="232" font-size="12" font-weight="700" fill="#6D28D9">腾讯混元大模型</text>
+
+  <rect x="925" y="252" width="270" height="38" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="938" y="276" font-size="12" font-weight="700" fill="#6D28D9">DeepSeek-V3 / DeepSeek-R1</text>
+
+  <rect x="925" y="296" width="270" height="38" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="938" y="320" font-size="12" font-weight="700" fill="#6D28D9">通义千问（私有化适配可选）</text>
+
+  <text x="925" y="348" font-size="9.5" fill="#7C3AED">被调用步骤：1 / 2 / 3精排 / 5 / 6 / 7 + 智能工具总结</text>
+
+  <!-- ================= Layer 4: 知识库层（右列） ================= -->
+  <rect x="910" y="380" width="260" height="305" rx="10" fill="#FFFBEB" stroke="#FDE68A" stroke-width="1.2"/>
+  <rect x="910" y="380" width="260" height="28" rx="10" fill="#D97706"/>
+  <text x="924" y="399" font-size="13" font-weight="700" fill="#FFFFFF">知识库与配置层</text>
+  <text x="1156" y="399" font-size="10.5" fill="#FEF3C7" text-anchor="end">腾讯云 BI 服务端</text>
+
+  <rect x="925" y="415" width="230" height="40" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="431" font-size="11" font-weight="700" fill="#B45309">腾讯云 ES 检索服务</text>
+  <text x="936" y="447" font-size="9.5" fill="#475569">分词召回粗排 · 服务步骤 3</text>
+
+  <rect x="925" y="460" width="230" height="40" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="476" font-size="11" font-weight="700" fill="#B45309">数据表知识库</text>
+  <text x="936" y="492" font-size="9.5" fill="#475569">表头+字符内容值 · 服务步骤 3 / 5</text>
+
+  <rect x="925" y="505" width="230" height="40" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="521" font-size="11" font-weight="700" fill="#B45309">计算字段知识库</text>
+  <text x="936" y="537" font-size="9.5" fill="#475569">企业口径公式 · 服务步骤 6 / 7</text>
+
+  <rect x="925" y="550" width="230" height="40" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="566" font-size="11" font-weight="700" fill="#B45309">习惯知识库</text>
+  <text x="936" y="582" font-size="9.5" fill="#475569">时间/非时间类 · 服务步骤 1 / 6 / 7</text>
+
+  <rect x="925" y="595" width="230" height="40" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="611" font-size="11" font-weight="700" fill="#B45309">事件知识库</text>
+  <text x="936" y="627" font-size="9.5" fill="#475569">业务事件录入 · 服务智能工具归因</text>
+
+  <rect x="925" y="640" width="230" height="40" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="656" font-size="11" font-weight="700" fill="#B45309">ICL Few-Shot 样本库</text>
+  <text x="936" y="672" font-size="9.5" fill="#475569">点赞点踩沉淀 · 服务步骤 6 / 7</text>
+
+  <!-- ================= Layer 5: BI 引擎层 ================= -->
+  <rect x="30" y="660" width="860" height="270" rx="10" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1.2"/>
+  <rect x="30" y="660" width="860" height="28" rx="10" fill="#059669"/>
+  <text x="44" y="679" font-size="13" font-weight="700" fill="#FFFFFF">BI 引擎层（查询编译 · 权限 · 智能工具 · 渲染）</text>
+  <text x="876" y="679" font-size="11" fill="#D1FAE5" text-anchor="end">腾讯云 BI 服务端（数据库引擎外部，不在数据库内核）</text>
+
+  <!-- Row A -->
+  <rect x="45" y="700" width="200" height="100" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="720" font-size="12" font-weight="700" fill="#047857">数据权限引擎</text>
+  <text x="55" y="738" font-size="10.5" fill="#475569">项目隔离 · 行级权限注入</text>
+  <text x="55" y="754" font-size="10.5" fill="#475569">接收两条通道的编译输出，</text>
+  <text x="55" y="770" font-size="10.5" fill="#475569">统一注权后下发用户数据库</text>
+  <text x="55" y="790" font-size="9.5" fill="#94A3B8">⚙ 确定性 · 不调用大模型</text>
+
+  <rect x="395" y="700" width="220" height="100" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="405" y="720" font-size="12" font-weight="700" fill="#047857">查询编译器（BI 拖拽查询协议）</text>
+  <text x="405" y="738" font-size="10.5" fill="#475569">DSL → 物理 SQL 编译</text>
+  <text x="405" y="754" font-size="10.5" fill="#475569">复杂计算拆多条 SQL 下发</text>
+  <text x="405" y="770" font-size="10.5" fill="#475569">（区间同环比 · 组内排序）</text>
+  <text x="405" y="790" font-size="9.5" fill="#94A3B8">⚙ 确定性编译 · 不调用大模型</text>
+
+  <rect x="655" y="700" width="220" height="100" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="665" y="720" font-size="12" font-weight="700" fill="#047857">方言转换工具</text>
+  <text x="665" y="738" font-size="10.5" fill="#475569">MySQL 方言 → 目标数据源方言</text>
+  <text x="665" y="754" font-size="10.5" fill="#475569">（Text2SQL 路线专用）</text>
+  <text x="665" y="770" font-size="10.5" fill="#475569">支持 20+ 数据源类型</text>
+  <text x="665" y="790" font-size="9.5" fill="#94A3B8">⚙ 确定性转换 · 不调用大模型</text>
+
+  <!-- Row B -->
+  <rect x="280" y="820" width="330" height="90" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="290" y="840" font-size="12" font-weight="700" fill="#047857">智能工具（数据解读 / 波动归因）</text>
+  <text x="290" y="858" font-size="10.5" fill="#475569">维度归因：分布差异法 · 解释力 · 惊喜度排序</text>
+  <text x="290" y="874" font-size="10.5" fill="#475569">指标归因：XGBoost + SHAP · ElasticNet</text>
+  <text x="290" y="896" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM（维度推荐/总结）<tspan fill="#B45309">　● 事件知识库</tspan></text>
+
+  <rect x="630" y="820" width="245" height="90" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="640" y="840" font-size="12" font-weight="700" fill="#047857">图表渲染引擎</text>
+  <text x="640" y="858" font-size="10.5" fill="#475569">结果缓存 · 图表一键切换不重算</text>
+  <text x="640" y="874" font-size="10.5" fill="#475569">SQL 白盒透出 · 快捷同环比</text>
+
+  <!-- ================= Layer 6: 数据源层 ================= -->
+  <rect x="30" y="950" width="1180" height="110" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+  <rect x="30" y="950" width="1180" height="28" rx="10" fill="#475569"/>
+  <text x="44" y="969" font-size="13" font-weight="700" fill="#FFFFFF">数据源层（数据库引擎）</text>
+  <text x="1196" y="969" font-size="11" fill="#E2E8F0" text-anchor="end">部署位置：用户数据域（用户本地 / 用户云上，数据不离本地）</text>
+
+  <rect x="45" y="988" width="660" height="60" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="1010" font-size="12" font-weight="700" fill="#334155">用户数据库（20+ 数据源类型）</text>
+  <text x="55" y="1030" font-size="10.5" fill="#475569">MySQL · ClickHouse · PostgreSQL · SQL Server · Oracle 等 · 仅执行下发的 SQL 并返回结果</text>
+
+  <rect x="730" y="988" width="460" height="60" rx="6" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="740" y="1010" font-size="12" font-weight="700" fill="#C2410C">安全边界（官方明确）</text>
+  <text x="740" y="1030" font-size="10.5" fill="#7C2D12">大模型与 BI 均不存储业务数据内容；模型仅见表头元数据与问题</text>
+
+  <!-- ================= Edges ================= -->
+  <!-- 1 用户提问 -->
+  <path d="M145,135 L145,206" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="145" cy="171" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="145" y="174.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">1</text>
+
+  <!-- 2 补全→分类 -->
+  <path d="M205,250 L231,250" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="218" cy="236" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="218" y="239.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">2</text>
+
+  <!-- 3 分类→澄清 -->
+  <path d="M405,250 L431,250" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="418" cy="236" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="418" y="239.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">3</text>
+
+  <!-- 4 澄清选项回传（虚线向上） -->
+  <path d="M545,210 L545,154" fill="none" stroke="#B45309" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrO)"/>
+  <circle cx="545" cy="182" r="9" fill="#fff" stroke="#B45309" stroke-width="1.2"/>
+  <text x="545" y="185.5" text-anchor="middle" font-size="9" font-weight="700" fill="#B45309">4</text>
+
+  <!-- 5 澄清→选表 -->
+  <path d="M655,250 L681,250" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="668" cy="236" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="668" y="239.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">5</text>
+
+  <!-- 6 选表→Text2SQL（直下） -->
+  <path d="M780,298 L780,356" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="780" cy="327" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="780" y="330.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">6</text>
+
+  <!-- 7 选表→Text2DSL（折线到左侧通道头部） -->
+  <path d="M710,298 L710,334 L210,334 L210,356" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="450" cy="334" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="450" y="337.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">7</text>
+
+  <!-- 8 4Agent→DSL整合 -->
+  <path d="M375,425 L391,425" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="383" cy="410" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="383" y="413.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">8</text>
+
+  <!-- 9 Text2SQL→方言转换工具（直下，通道隔离） -->
+  <path d="M765,470 L765,696" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="765" cy="580" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="765" y="583.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">9</text>
+
+  <!-- 10 DSL整合→查询编译器（直下，通道隔离） -->
+  <path d="M505,490 L505,696" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="505" cy="590" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="505" y="593.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">10</text>
+
+  <!-- 11 权限引擎→用户数据库 -->
+  <path d="M145,800 L145,946" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="145" cy="875" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="145" y="878.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">11</text>
+
+  <!-- 12 数据源→BI（结果返回） -->
+  <path d="M700,950 L700,934" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="682" cy="942" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="682" y="945.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">12</text>
+
+  <!-- 13 渲染→应用层 -->
+  <path d="M875,865 L1225,865 L1225,90 L1214,90" fill="none" stroke="#059669" stroke-width="1.5" marker-end="url(#arrE)"/>
+  <circle cx="1225" cy="430" r="9" fill="#fff" stroke="#059669" stroke-width="1.2"/>
+  <text x="1225" y="433.5" text-anchor="middle" font-size="9" font-weight="700" fill="#059669">13</text>
+
+  <!-- 14 点赞点踩→ICL样本库（虚线） -->
+  <path d="M896,135 L896,660 L921,660" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrG)"/>
+  <circle cx="896" cy="400" r="9" fill="#fff" stroke="#94A3B8" stroke-width="1.2"/>
+  <text x="896" y="403.5" text-anchor="middle" font-size="9" font-weight="700" fill="#64748B">14</text>
+
+  <!-- Bus L: Agent层→大模型层 -->
+  <path d="M890,265 L906,265" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#arrP)"/>
+  <circle cx="898" cy="249" r="9" fill="#fff" stroke="#7C3AED" stroke-width="1.4"/>
+  <text x="898" y="252.5" text-anchor="middle" font-size="9" font-weight="700" fill="#7C3AED">L</text>
+
+  <!-- Bus K: 知识库层→Agent层 -->
+  <path d="M910,470 L894,470" fill="none" stroke="#D97706" stroke-width="2" marker-end="url(#arrK)"/>
+  <circle cx="902" cy="454" r="9" fill="#fff" stroke="#D97706" stroke-width="1.4"/>
+  <text x="902" y="457.5" text-anchor="middle" font-size="9" font-weight="700" fill="#B45309">K</text>
+</svg>
+    </div>
+
+    <div class="legend-grid">
+      <div class="legend-item"><span class="legend-num">1</span>用户在各端输入自然语言提问，进入多轮对话模块（<strong>调用大模型 L</strong> 做历史语义补全，可结合习惯知识库）</div>
+      <div class="legend-item"><span class="legend-num">2</span>补全后的完整提问送入意图分类模块（<strong>调用大模型 L</strong>：无关拒识 / 时间主体完整 / 缺失三分类）</div>
+      <div class="legend-item"><span class="legend-num">3</span>缺时间或主体的问题进入意图澄清：先经 <strong>知识库总线 K</strong>（腾讯云 ES + 数据表知识库分词召回粗排），再经 <strong>大模型总线 L</strong>（LLM + 向量相似度打分精排）过滤不合理选项</div>
+      <div class="legend-item"><span class="legend-num">4</span>澄清选项按钮回传用户点选（选项必定来自知识库真实字段，虚线）；点选后回到步骤 5，不重走 1~3</div>
+      <div class="legend-item"><span class="legend-num">5</span>意图明确后进入智能选表：<strong>调用大模型 L</strong> 基于表名/表备注/字段备注（<strong>数据表知识库 K</strong>）做语义匹配，单表或多表关联</div>
+      <div class="legend-item"><span class="legend-num">6</span><strong>简单查询分流</strong> → Text2SQL 通道：<strong>调用大模型 L</strong>（结合计算字段/习惯知识/ICL 样本 <strong>K</strong>）直出 MySQL 方言 SQL</div>
+      <div class="legend-item"><span class="legend-num">7</span><strong>复杂计算分流</strong> → Text2DSL 通道：四个 Agent 各自<strong>调用大模型 L</strong>（结合 <strong>K</strong>）生成基本参数/维度/指标/条件区块；与步骤 6 互相隔离，二选一执行</div>
+      <div class="legend-item"><span class="legend-num">8</span>四个 Agent 的输出交由 DSL 整合与正确性验证合并、后处理（确定性工程代码，<strong>不调用大模型</strong>）</div>
+      <div class="legend-item"><span class="legend-num">9</span>Text2SQL 通道产物（MySQL SQL）送 BI 引擎的<strong>方言转换工具</strong>翻译为目标数据源方言（与步骤 10 互相隔离）</div>
+      <div class="legend-item"><span class="legend-num">10</span>Text2DSL 通道产物（完整 DSL JSON）送 BI 引擎的<strong>查询编译器</strong>按拖拽协议编译，复杂计算拆多条 SQL</div>
+      <div class="legend-item"><span class="legend-num">11</span>两条通道的编译结果统一经<strong>数据权限引擎</strong>注入项目隔离/行级权限后，物理 SQL 下发用户数据库执行（数据不离本地）</div>
+      <div class="legend-item"><span class="legend-num">12</span>查询结果返回 BI 引擎：结果缓存供图表切换不重算；智能工具在此基础上做统计归因（分布差异法 / XGBoost+SHAP），并<strong>调用大模型</strong>做维度推荐与总结、检索<strong>事件知识库</strong></div>
+      <div class="legend-item"><span class="legend-num">13</span>图表 + SQL 白盒（展开推理）+ 结论渲染回应用层，支持二次交互</div>
+      <div class="legend-item"><span class="legend-num">14</span>点赞点踩反馈沉淀为 ICL Few-Shot 样本库（数据飞轮，服务步骤 6 / 7，虚线）</div>
+      <div class="legend-item"><span class="legend-num llm">L</span><strong>大模型调用总线</strong>：步骤 1 / 2 / 3（精排）/ 5 / 6 / 7 及智能工具（数据解读、归因维度推荐与总结）经此调用大模型层；各组件右下角紫色「● LLM」徽标即表示经过 L 总线</div>
+      <div class="legend-item"><span class="legend-num kb">K</span><strong>知识库检索总线</strong>：步骤 3（ES 粗排 · 数据表知识库）/ 5（表结构）/ 6 · 7（计算字段口径 · 习惯知识 · ICL 样本）及智能工具（事件知识库）经此检索知识库层；琥珀色「● 知识库」徽标即表示经过 K 总线</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>二、组件部署位置与证据来源对照表</h2>
+    <table>
+      <thead>
+        <tr><th>组件（官方专属名称）</th><th>所在层</th><th>部署位置</th><th>是否使用大模型 / 知识库</th><th>证据来源</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>腾讯云 BI 控制台 / ChatBI 小程序 / H5 / ChatBI 嵌出</td><td>应用层</td><td><span class="tag tag-user">用户侧多终端</span></td><td>否</td><td>产品手册「多终端支持」「ChatBI 嵌出」</td></tr>
+        <tr><td>展开推理（SQL 白盒）· 图表切换 · 点赞点踩 · 插入看板</td><td>应用层</td><td><span class="tag tag-user">用户侧前端</span></td><td>否（点踩反馈回流 ICL 样本库）</td><td>产品手册「SQL 校验与便捷分享」「快速入门」</td></tr>
+        <tr><td>多轮对话模块（步骤 1）</td><td>Agent 层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td><span class="tag tag-llm">LLM</span></td><td>技术文章「意图澄清」第 1 步</td></tr>
+        <tr><td>意图分类模块（步骤 2）</td><td>Agent 层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td><span class="tag tag-llm">LLM</span></td><td>技术文章「意图澄清·功能」</td></tr>
+        <tr><td>意图澄清模块（步骤 3~4）</td><td>Agent 层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端 + 腾讯云 ES</span></td><td>粗排：<span class="tag tag-cloud">ES+知识库</span>　精排：<span class="tag tag-llm">LLM+向量</span></td><td>技术文章「意图澄清」流程 1~4</td></tr>
+        <tr><td>智能选表（步骤 5）</td><td>Agent 层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td><span class="tag tag-llm">LLM</span> + 数据表知识库</td><td>产品手册「智能选表」</td></tr>
+        <tr><td>Text2SQL 生成通道（步骤 6，默认路线）</td><td>Agent 层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td><span class="tag tag-llm">LLM</span> + 计算字段/习惯/ICL 知识库</td><td>技术文章「Text2DSL」开头</td></tr>
+        <tr><td>Text2DSL Multi-Agent（步骤 7，基本参数 / 维度 / 指标 / 条件 4 Agent）</td><td>Agent 层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td><span class="tag tag-llm">LLM×4</span> + 计算字段/习惯/ICL 知识库</td><td>技术文章「Text2DSL·Multi-agent」</td></tr>
+        <tr><td>DSL 整合与正确性验证（步骤 8）</td><td>Agent 层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td>否（确定性工程代码）</td><td>技术文章「最后会整合DSL并验证准确性」</td></tr>
+        <tr><td>腾讯混元 / DeepSeek-V3/R1 / 通义千问（私有化可选）</td><td>大模型层</td><td><span class="tag tag-cloud">腾讯云侧 / 私有化 GPU</span></td><td>—（被 L 总线调用）</td><td>产品手册「产品概述」、官方门户 FAQ</td></tr>
+        <tr><td>腾讯云 ES + 数据表 / 计算字段 / 习惯 / 事件知识库 + ICL 样本库</td><td>知识库层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td>—（被 K 总线检索）</td><td>产品手册「ChatBI 知识库」各节</td></tr>
+        <tr><td>查询编译器（步骤 10，拖拽协议，DSL→多条物理 SQL）</td><td>BI 引擎层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端（数据库外部）</span></td><td>否</td><td>技术文章「Text2DSL 优点 3」</td></tr>
+        <tr><td>方言转换工具（步骤 9，MySQL → 20+ 方言）</td><td>BI 引擎层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端（数据库外部）</span></td><td>否</td><td>技术文章「Text2SQL 缺点 2」</td></tr>
+        <tr><td>数据权限引擎（步骤 11，项目隔离 / 行级权限）</td><td>BI 引擎层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td>否</td><td>产品手册「ChatBI 权限」</td></tr>
+        <tr><td>智能工具：数据解读 / 波动归因（步骤 12 之后）</td><td>BI 引擎层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端</span></td><td>归因计算：否（分布差异法/XGBoost+SHAP）　维度推荐与总结：<span class="tag tag-llm">LLM</span> + 事件知识库</td><td>产品手册「波动归因·算法原理」</td></tr>
+        <tr><td>图表渲染引擎（步骤 13，结果缓存 · 切换不重算）</td><td>BI 引擎层</td><td><span class="tag tag-cloud">腾讯云 BI 服务端 + 前端</span></td><td>否</td><td>官方门户「智能绘制图表」</td></tr>
+        <tr><td>用户数据库（MySQL / ClickHouse / PG / Oracle 等 20+）</td><td>数据源层</td><td><span class="tag tag-user">用户数据域（数据不离本地）</span></td><td>否</td><td>官方门户「数据安全」FAQ</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>三、落地开发能力清单：你已有 MySQL + 库内对接大模型时，还要开发什么</h2>
+    <p class="note">前提假设：你已有 <strong>MySQL 引擎</strong>，且 <strong>MySQL 内部已对接大模型</strong>（例如通过库内 AI 函数 / 插件 / UDF / 侧车服务，可从 SQL 侧或服务端调用 LLM）。本章把上文腾讯 ChatBI 全链路组件<strong>具体化为可开发能力</strong>，并标注：哪些已被你现有能力覆盖、哪些仍需自研、可用哪些开源组件替代。</p>
+
+    <h3>3.1 先说结论：库内对接大模型 ≠ ChatBI 已完成</h3>
+    <p class="note" style="margin-bottom:14px;">「MySQL 内对接大模型」通常只覆盖 <strong>LLM 调用通道</strong>（以及可选的库内向量/AI 函数）。ChatBI 真正要交付的是：会话与澄清、知识库治理、选表与 Schema Linking、受约束的 SQL/DSL 生成、权限与安全校验、图表与洞察。这些大部分在<strong>数据库外部的应用 / Agent 服务</strong>中实现。对你而言：<strong>大模型层与数据源执行层已基本具备；Agent 层、知识库层、BI 引擎层、应用层仍是主战场。</strong></p>
+
+    <div class="legend-grid" style="margin-bottom:18px;">
+      <div class="legend-item" style="border-left:4px solid #16a34a;"><strong style="color:#15803d;">已具备 / 可少做</strong>：MySQL 查询执行、LLM 调用通道、MySQL 单方言（可暂缓方言转换）</div>
+      <div class="legend-item" style="border-left:4px solid #ea580c;"><strong style="color:#c2410c;">必须自研或组装</strong>：会话状态、澄清 UX、四类知识库、选表、生成编排、权限注入、前端对话+图表</div>
+      <div class="legend-item" style="border-left:4px solid #2563eb;"><strong style="color:#1d4ed8;">优先开源替代</strong>：Vanna / Wren AI、SQLGlot、LangGraph、Cube.js、ECharts / AntV AVA、pg_trgm 或 Meilisearch（检索）</div>
+      <div class="legend-item" style="border-left:4px solid #7c3aed;"><strong style="color:#6d28d9;">二期再做</strong>：完整 Text2DSL + 4-Agent、波动归因统计算法、多数据源方言、看板固化嵌出</div>
+    </div>
+
+    <h3>3.2 全链路组件 → 需开发能力 → 你的现状 → 开源替代</h3>
+    <div style="overflow-x:auto; border:1px solid var(--border); border-radius:8px;">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:140px;">腾讯链路组件</th>
+          <th style="min-width:160px;">具体化为需开发的能力</th>
+          <th style="min-width:120px;">你已有 MySQL+库内LLM 时</th>
+          <th style="min-width:200px;">仍需做什么</th>
+          <th style="min-width:200px;">可用开源组件</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>多轮对话模块</strong></td>
+          <td>会话 Session 管理；历史原文 + 结构化槽位（指标/维度/时间/过滤）；指代消解后生成完整提问</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span> LLM 在库内不能自动管 Session</td>
+          <td><strong>必须开发</strong>：Session 存储（Redis/MySQL 表）+ 补全逻辑（规则或调 LLM）</td>
+          <td>LangGraph / LlamaIndex Memory；Redis / MySQL 存会话表</td>
+        </tr>
+        <tr>
+          <td><strong>意图分类模块</strong></td>
+          <td>拒识（无关话题）；判断时间/主体是否齐全；路由到澄清或生成</td>
+          <td><span class="tag" style="background:#fef3c7;color:#92400e;">可借用 LLM</span> 用库内 LLM 做三分类</td>
+          <td><strong>轻量自研</strong>：分类 Prompt + 路由代码；拒识可加敏感词规则</td>
+          <td>一次 LLM 调用即可；可选轻量分类模型</td>
+        </tr>
+        <tr>
+          <td><strong>意图澄清模块</strong></td>
+          <td>缺槽追问；知识库候选字段召回（粗排）；LLM/向量精排；选项按钮 UX</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span> 需检索 + 前端交互</td>
+          <td><strong>必须开发</strong>：粗排检索 + 精排 + 前端澄清选项组件</td>
+          <td>粗排：Meilisearch / Elasticsearch / MySQL FULLTEXT；精排：embedding + 库内 LLM；前端自研按钮组</td>
+        </tr>
+        <tr>
+          <td><strong>智能选表</strong></td>
+          <td>表名/备注/字段备注语义匹配；单表或关联选表；可手动切换</td>
+          <td><span class="tag" style="background:#fef3c7;color:#92400e;">可部分借用</span> LLM 读表元数据做选表</td>
+          <td><strong>必须开发</strong>：元数据索引 + 选表 Prompt/检索；MVP 可强制用户选表以降低难度</td>
+          <td>Vanna.ai / Wren AI 的 schema 检索；information_schema 定时同步</td>
+        </tr>
+        <tr>
+          <td><strong>数据表 / 计算字段 / 习惯 / 事件知识库 + ICL 样本库</strong></td>
+          <td>表头与枚举值索引；指标口径；习惯规则；事件知识；点赞点踩 few-shot</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span>（除非你已建元数据表）</td>
+          <td><strong>必须开发（核心）</strong>：知识库表结构 + 管理后台 + 读取/同步任务</td>
+          <td>知识存在 MySQL 表；检索用 FULLTEXT 或向量扩展；OpenMetadata（可选）；Few-shot 表自研</td>
+        </tr>
+        <tr>
+          <td><strong>Text2SQL 生成通道（默认）</strong></td>
+          <td>组装 Prompt（DDL/知识/样例）→ LLM 生成 MySQL SQL → 白名单校验</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">已具备 LLM 通道</span> 可直接调用库内大模型</td>
+          <td><strong>仍需开发</strong>：Prompt 组装、Schema Linking、只读执行与超时；不要裸调「问题→SQL」</td>
+          <td><strong>Vanna.ai</strong>（首选）、Wren AI、DB-GPT；校验用 <strong>SQLGlot</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Text2DSL Multi-Agent（4 Agent）</strong></td>
+          <td>DSL JSON 协议；基本参数/维度/指标/条件分 Agent 生成；复杂同环比等</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">二期</span> MVP 可先不做</td>
+          <td>P0 可跳过；P1 再定义 DSL + LangGraph 四节点；编译器需自研或用 Cube</td>
+          <td>LangGraph；Cube.js Query JSON 作 DSL 替代；SQLGlot 编译</td>
+        </tr>
+        <tr>
+          <td><strong>DSL 整合与正确性验证</strong></td>
+          <td>合并 Agent 输出；JSON Schema 校验；字段白名单</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">随 DSL 二期</span></td>
+          <td>确定性工程代码（几十～几百行）</td>
+          <td>jsonschema / pydantic；SQLGlot AST 检查</td>
+        </tr>
+        <tr>
+          <td><strong>方言转换工具</strong></td>
+          <td>MySQL SQL → 其他方言</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">可跳过</span> 你只有 MySQL</td>
+          <td>暂不开发；未来多源再用 SQLGlot transpile</td>
+          <td>SQLGlot</td>
+        </tr>
+        <tr>
+          <td><strong>查询编译器（拖拽协议）</strong></td>
+          <td>DSL → 物理 SQL；复杂计算拆多条 SQL</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">二期</span>；走 Text2SQL 时可不做</td>
+          <td>若坚持 DSL：自研轻量编译器或直接用 Cube.js</td>
+          <td><strong>Cube.js</strong>（语义层+编译+缓存）</td>
+        </tr>
+        <tr>
+          <td><strong>数据权限引擎</strong></td>
+          <td>项目/租户隔离；行级过滤；禁止写操作；statement_timeout</td>
+          <td><span class="tag" style="background:#fef3c7;color:#92400e;">MySQL 可部分承载</span> 无 PG 级原生 RLS</td>
+          <td><strong>必须开发</strong>：AST 注入 tenant/org 条件，或视图/强制 WHERE；只读账号</td>
+          <td><strong>SQLGlot</strong> 改写 WHERE；MySQL 视图 + 应用层强制条件；只读用户</td>
+        </tr>
+        <tr>
+          <td><strong>大模型层（混元/DeepSeek 等）</strong></td>
+          <td>提供 LLM 推理能力</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">已具备</span> MySQL 内已对接</td>
+          <td>封装统一调用接口（超时、限流、日志）；Agent 服务调你现有通道即可</td>
+          <td>不必再引 Ollama/vLLM，除非要换模型；可用 LiteLLM 做统一适配层</td>
+        </tr>
+        <tr>
+          <td><strong>用户数据库执行</strong></td>
+          <td>执行只读 SQL；返回结果集</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">已具备</span> MySQL</td>
+          <td>配置只读账号、超时、最大返回行数、EXPLAIN Dry-Run</td>
+          <td>MySQL 原生；连接池（HikariCP / SQLAlchemy）</td>
+        </tr>
+        <tr>
+          <td><strong>图表渲染引擎</strong></td>
+          <td>按结果推荐图表；柱/线/饼/表；切换不重算</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span></td>
+          <td><strong>必须开发前端</strong>：结果缓存 + 图表组件</td>
+          <td><strong>Apache ECharts</strong>；<strong>@antv/ava</strong>（ChartAdvisor 智能推荐）</td>
+        </tr>
+        <tr>
+          <td><strong>智能工具：数据解读 / 波动归因</strong></td>
+          <td>结果文字解读；维度/指标归因统计算法；总结建议</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">二期</span>；解读可先用 LLM 总结结果</td>
+          <td>P0：把结果表塞给 LLM 写 3 条洞察；P2：再上贡献度/SHAP</td>
+          <td>解读：库内 LLM；归因：Python statsmodels / scikit-learn / shap</td>
+        </tr>
+        <tr>
+          <td><strong>应用层（控制台 / H5 / 嵌出）</strong></td>
+          <td>对话 UI、澄清选项、SQL 白盒、点赞点踩、嵌出鉴权</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span></td>
+          <td><strong>必须开发</strong>：至少 Web 对话页；嵌出可二期</td>
+          <td>CopilotKit / Assistant UI；Next.js / React；自研澄清按钮区</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>3.3 按优先级的开发清单（针对「MySQL + 库内 LLM」）</h3>
+    <table>
+      <thead>
+        <tr><th>优先级</th><th>要交付的能力</th><th>建议做法</th><th>开源主选</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>P0 · MVP（先跑通可信问数）</strong></td>
+          <td>① Session 多轮补全　② 知识库（表结构+同义词+口径）　③ Schema Linking　④ Text2SQL（调你已有库内 LLM）　⑤ SQLGlot 校验 + 权限 WHERE 注入　⑥ 只读执行　⑦ 对话前端 + ECharts</td>
+          <td>先走腾讯「默认 Text2SQL」路线；单表/大宽表；澄清可先做「缺时间就追问」简化版</td>
+          <td>Vanna.ai + SQLGlot + ECharts + React 对话页</td>
+        </tr>
+        <tr>
+          <td><strong>P1 · 准确率与体验</strong></td>
+          <td>① ES/全文粗排 + 澄清选项按钮　② 智能选表　③ ICL 点赞点踩样本库　④ 结果 LLM 解读　⑤ Dry-Run / Self-Reflection 重试</td>
+          <td>照抄腾讯：澄清候选只从知识库出；点赞回流 few-shot</td>
+          <td>Meilisearch 或 MySQL FULLTEXT；LangGraph 重试环</td>
+        </tr>
+        <tr>
+          <td><strong>P2 · 复杂分析与产品化</strong></td>
+          <td>① Text2DSL + 4-Agent　② Cube/语义层　③ 波动归因算法　④ 嵌出 Token　⑤ 看板固化</td>
+          <td>复杂同环比再上 DSL；归因「算法算数、LLM 写话」</td>
+          <td>Cube.js；LangGraph；shap / XGBoost</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.4 推荐最小技术栈（贴合你现有资产）</h3>
+<pre style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:8px;font-size:12.5px;overflow-x:auto;line-height:1.55;margin:12px 0;">【应用层】React / Next.js + CopilotKit（对话）+ ECharts / @antv/ava（图表）
+        │
+【Agent 服务】FastAPI / Java
+  ├─ Session（Redis 或 MySQL 会话表）：历史原文 + 槽位
+  ├─ 意图分类 / 多轮补全 / 澄清编排：Prompt → 调用「MySQL 已对接的 LLM」
+  ├─ 知识库检索：MySQL 元数据表 + FULLTEXT / 向量（若有）
+  ├─ Text2SQL：Vanna.ai 或自研 Prompt 组装 → 库内 LLM
+  ├─ 校验与权限：SQLGlot AST 检查 + 强制注入 tenant_id / org_id
+  └─ 执行：MySQL 只读账号 + statement_timeout + LIMIT
+        │
+【你已有】MySQL 引擎（业务表 + 知识库表 + 可选向量）+ 库内大模型通道</pre>
+
+    <h3>3.5 一张「还要开发吗」速查表</h3>
+    <table>
+      <thead>
+        <tr><th>能力</th><th>还要开发吗？</th><th>一句话</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>LLM 推理本身</td><td><strong>不用再买/再训</strong></td><td>复用 MySQL 已对接的大模型通道</td></tr>
+        <tr><td>MySQL 查询执行</td><td><strong>不用</strong></td><td>已有引擎；补只读账号与超时即可</td></tr>
+        <tr><td>方言转换</td><td><strong>不用（现阶段）</strong></td><td>单 MySQL 方言</td></tr>
+        <tr><td>会话 / 多轮 / 澄清 UX</td><td><strong>要</strong></td><td>库内 LLM 不管 Session 与前端选项</td></tr>
+        <tr><td>知识库与元数据治理</td><td><strong>要（重点）</strong></td><td>准确率主要靠它，不靠换模型</td></tr>
+        <tr><td>Text2SQL 编排与校验</td><td><strong>要</strong></td><td>LLM 只是生成器；编排+SQLGlot 才是产品</td></tr>
+        <tr><td>行级权限</td><td><strong>要</strong></td><td>MySQL 无 PG 式 RLS，必须应用层/AST 注入</td></tr>
+        <tr><td>图表与对话前端</td><td><strong>要</strong></td><td>开源 UI + ECharts 可快速搭</td></tr>
+        <tr><td>Text2DSL 四 Agent / 波动归因</td><td><strong>可二期</strong></td><td>MVP 不阻塞</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>四、还原依据与原始出处</h2>
+    <p class="note">腾讯官方材料中包含意图澄清流程图与 DSL 协议示例等局部图示，但未公开完整的分层架构大图；本图为按以下官方材料的文字描述进行的组件级还原。其中「图表渲染引擎的结果缓存机制」为根据"图表一键切换无需重新计算"的产品行为做出的合理推断；「简单/复杂查询在两条通道间的分流策略」为根据官方"默认 Text2SQL + Text2DSL 解决复杂计算"表述做出的合理推断；其余组件与交互均有原文依据。第三章「落地开发能力清单」是在腾讯链路组件基础上，针对「已有 MySQL + 库内对接大模型」场景给出的工程化映射与开源选型建议。</p>
+    <ul class="src">
+      <li>腾讯云大数据团队：<a href="https://cloud.tencent.cn/developer/article/2470653" target="_blank">《腾讯云ChatBI：基于大模型的效果调优方案探索》</a>（意图澄清管线、Text2SQL/Text2DSL 双路线、DSL 协议示例、4 个 Multi-Agent、ICL 调优）</li>
+      <li>腾讯云官方：<a href="https://main.qcloudimg.com/raw/document/product/pdf/590_107688_cn.pdf" target="_blank">《腾讯云 BI 智能助手 ChatBI 产品手册（PDF）》</a>（智能选表、四类知识库、波动归因算法原理、读取模式与安全、嵌出 Token 鉴权、多终端）</li>
+      <li>腾讯云官方门户：<a href="https://chatbi.cloud.tencent.com/" target="_blank">腾讯云 BI 智能助手 ChatBI 产品页</a>（部署形态、支持的大模型、数据安全 FAQ、20+ 数据源）</li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>
