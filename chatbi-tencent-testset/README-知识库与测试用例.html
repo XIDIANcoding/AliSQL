@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>腾讯云 ChatBI 测试数据包：表结构 · 知识库 · 测试用例</title>
+<style>
+  :root { --border:#e2e8f0; --muted:#475569; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:#f8fafc; color:#0f172a; line-height:1.65; font-size:15px; }
+  .wrap { max-width:1100px; margin:0 auto; padding:28px 20px 60px; }
+  .banner { background:linear-gradient(135deg,#0f172a,#1e293b); color:#fff; border-radius:12px; padding:26px 28px; margin-bottom:22px; }
+  .banner h1 { font-size:22px; font-weight:800; margin-bottom:8px; }
+  .banner p { color:#94a3b8; font-size:13.5px; }
+  section { background:#fff; border:1px solid var(--border); border-radius:10px; padding:24px 26px; margin-bottom:20px; }
+  h2 { font-size:18px; font-weight:700; margin-bottom:12px; border-bottom:2px solid #e0f2fe; padding-bottom:8px; }
+  h3 { font-size:15px; font-weight:700; margin:16px 0 8px; color:#1e293b; }
+  p, li { color:#334155; font-size:14px; }
+  ul, ol { padding-left:20px; margin:8px 0; }
+  li { margin-bottom:6px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin:10px 0; }
+  th { background:#f1f5f9; text-align:left; padding:9px 11px; border-bottom:1px solid var(--border); }
+  td { padding:9px 11px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+  code, .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; background:#f1f5f9; padding:1px 5px; border-radius:4px; }
+  .note { font-size:13px; color:var(--muted); background:#f8fafc; border-left:4px solid #0284c7; padding:10px 12px; margin:10px 0; border-radius:0 6px 6px 0; }
+  .warn { border-left-color:#f59e0b; background:#fffbeb; color:#92400e; }
+  .ok { border-left-color:#16a34a; background:#f0fdf4; color:#166534; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:4px; font-size:11px; font-weight:600; }
+  .tag-kb { background:#ffedd5; color:#c2410c; }
+  .tag-case { background:#e0f2fe; color:#0369a1; }
+  pre { background:#0f172a; color:#e2e8f0; padding:14px; border-radius:8px; font-size:12px; overflow-x:auto; line-height:1.5; margin:10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <h1>腾讯云 ChatBI 测试数据包</h1>
+    <p>可导入 CSV 样例表 · 需创建的知识库清单 · 能体现知识库价值的测试用例（对照官方：数据表知识 / 计算字段 / 习惯知识 / 事件知识）</p>
+  </div>
+
+  <section>
+    <h2>0. 格式说明</h2>
+    <div class="note warn">
+      ChatBI / 腾讯云 BI 导入数据表支持的是 <strong>CSV / Excel</strong> 等表格格式，不是 SVG（矢量图）。本包提供的是 <strong>UTF-8 BOM 的 CSV</strong>，可直接在腾讯云 BI 中「创建数据表 → 本地上传 / 导入」。若你确实需要 SVG 图表素材，与「导入数据表」无关，可另说。
+    </div>
+    <p>文件目录：<code>chatbi-tencent-testset/</code></p>
+    <ul>
+      <li><code>dws_retail_trade_di.csv</code> — 主宽表（约 5800+ 行，2023-01-01～2024-12-31 日粒度抽样），<strong>建议作为 ChatBI 主问数表</strong></li>
+      <li><code>dim_customer.csv</code> — 客户维表（可选，测智能选多表）</li>
+      <li><code>dim_region.csv</code> — 地区维表（可选）</li>
+      <li><code>README-知识库与测试用例.html</code> — 本说明（即当前页）</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>1. 导入前：表与字段怎么配（影响智能选表 / 澄清）</h2>
+    <h3>1.1 主表建议配置</h3>
+    <table>
+      <thead><tr><th>配置项</th><th>建议值</th><th>原因（官方能力）</th></tr></thead>
+      <tbody>
+        <tr><td>数据表名称</td><td><code>零售交易日汇总表</code></td><td>智能选表依赖表名语义</td></tr>
+        <tr><td>表备注</td><td>主表 / 日汇总 / 主题：零售订单成交与毛利；含大区、省份、品类、渠道、客户</td><td>官方「选表效果提升：表类型+主题」</td></tr>
+        <tr><td>读取数据模式</td><td><strong>读取表头和内容</strong></td><td>自动生成字符型枚举知识（品类/渠道/省份等），澄清与值映射更准</td></tr>
+        <tr><td>读取字段</td><td>全选字符型：大区、省份、商品品类、销售渠道、客户名称、是否退货</td><td>值→字段索引</td></tr>
+        <tr><td>对话示例提问</td><td>见下文「引导语」3 条</td><td>降低冷启动提问成本</td></tr>
+      </tbody>
+    </table>
+    <h3>1.2 主表字段一览</h3>
+    <table>
+      <thead><tr><th>字段名</th><th>类型建议</th><th>字段备注建议</th></tr></thead>
+      <tbody>
+        <tr><td>订单ID</td><td>文本</td><td>订单唯一编号</td></tr>
+        <tr><td>订单日期</td><td>日期/时间</td><td>下单成交日期；分析时间主字段</td></tr>
+        <tr><td>大区</td><td>文本</td><td>华东/华北/华南/西南/华中</td></tr>
+        <tr><td>省份</td><td>文本</td><td>收货/销售省份</td></tr>
+        <tr><td>商品品类</td><td>文本</td><td>进口商品、出口商品、自有品牌、联名款</td></tr>
+        <tr><td>销售渠道</td><td>文本</td><td>天猫旗舰店、京东自营、抖音小店、线下门店、企微私域</td></tr>
+        <tr><td>客户名称</td><td>文本</td><td>成交客户名称</td></tr>
+        <tr><td>销售额</td><td>数值</td><td>实际支付成交额 GMV；同义词：流水、营收、成交额</td></tr>
+        <tr><td>成本金额</td><td>数值</td><td>对应订单成本</td></tr>
+        <tr><td>毛利</td><td>数值</td><td>销售额减成本金额</td></tr>
+        <tr><td>订单量</td><td>数值</td><td>订单件数/笔数</td></tr>
+        <tr><td>是否退货</td><td>文本</td><td>是/否</td></tr>
+      </tbody>
+    </table>
+    <div class="note">故意<strong>不在表里放「毛利率」列</strong>，以便用「计算字段知识库」证明价值；故意让业务口语「收入」与字段「销售额」不一致，以便用「习惯/同义」类知识证明价值。</div>
+  </section>
+
+  <section>
+    <h2>2. 需要创建哪些知识库（按腾讯官方四类）</h2>
+    <p>对照官方手册：数据表启用时的表结构知识 + <strong>计算字段知识库</strong>、<strong>习惯知识库</strong>（时间类/非时间类）、<strong>事件知识库</strong>（仅波动归因）。建议按下面清单逐条录入并启用。</p>
+
+    <h3>2.1 数据表知识（启用表时自动生成，需人工补备注）</h3>
+    <table>
+      <thead><tr><th>项</th><th>操作</th></tr></thead>
+      <tbody>
+        <tr><td>表名 / 表备注 / 字段备注</td><td>按上一节填写；这是智能选表与选字段的基础</td></tr>
+        <tr><td>读取模式</td><td>选「读取表头和内容」，让「进口商品」「天猫旗舰店」等值进入知识库</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2.2 计算字段知识库 <span class="tag tag-kb">必建</span></h3>
+    <table>
+      <thead><tr><th>知识名称</th><th>推荐录入内容（按官方模板风格）</th><th>证明什么</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>毛利率</td><td>临时计算字段：毛利率 = 毛利 / 销售额；当用户问毛利率、毛利率情况、毛利占比时使用该计算逻辑</td>
+          <td>表中无毛利率列时仍能正确计算</td>
+        </tr>
+        <tr>
+          <td>客单价</td><td>临时计算字段：客单价 = 销售额 / 订单量</td>
+          <td>复合指标需知识库，不能靠模型瞎编分母</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2.3 习惯知识库 · 非时间类 <span class="tag tag-kb">必建</span></h3>
+    <table>
+      <thead><tr><th>知识名称</th><th>推荐录入内容</th><th>证明什么</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>收入口径</td><td>当用户说「收入」「营收」「流水」「成交额」「GMV」时，统一映射为字段「销售额」进行求和</td>
+          <td>口语≠字段名，无知识易选错列或拒答</td>
+        </tr>
+        <tr>
+          <td>我们/公司主体</td><td>用户说「我们」「公司」「集团」时，默认分析本表全部数据，不追问主体；若提到具体客户名称则按客户名称过滤</td>
+          <td>减少「主体不清晰」追问</td>
+        </tr>
+        <tr>
+          <td>退货口径</td><td>问销售额/收入时默认只统计「是否退货=否」的订单；若用户明确说含退货则不过滤</td>
+          <td>业务默认规则，非表结构能表达</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2.4 习惯知识库 · 时间类 <span class="tag tag-kb">必建</span></h3>
+    <div class="note warn">官方说明：时间类习惯知识需在「配置 → 数据表」中<strong>关闭时间追问</strong>后才会按知识生效。测试时注意开关。</div>
+    <table>
+      <thead><tr><th>知识名称</th><th>推荐录入内容</th><th>证明什么</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>默认时间范围</td><td>用户未指定时间时，默认查询「订单日期」为<strong>2024年</strong>（或「最近完整自然月」——按你测试当天改成固定 2024 年便于复现）</td>
+          <td>关掉追问后，模糊问「收入怎么样」仍能出数</td>
+        </tr>
+        <tr>
+          <td>今年/去年</td><td>「今年」=2024年；「去年」=2023年（与样例数据年份对齐）</td>
+          <td>相对时间词稳定落地</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2.5 事件知识库 <span class="tag tag-kb">测波动归因时必建</span></h3>
+    <table>
+      <thead><tr><th>知识名称</th><th>推荐录入内容</th><th>证明什么</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>2024年618大促</td><td>2024-06-15 至 2024-06-20 为公司「618大促」活动期，投放与满减力度加大，销售额通常显著高于日常</td>
+          <td>归因总结能引用业务事件，而不仅是维度贡献数字</td>
+        </tr>
+        <tr>
+          <td>2024年双十一</td><td>2024-11-10 至 2024-11-12 为「双十一」大促，天猫与抖音渠道为主力</td>
+          <td>同上，渠道波动可被事件解释</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="note">官方建议单表事件知识不宜过多（&lt;30 条）；本测试 2 条足够。</div>
+
+    <h3>2.6 引导语（表级示例提问）</h3>
+    <ol>
+      <li>2024年各大区的销售额分别是多少</li>
+      <li>去年进口商品的毛利率是多少</li>
+      <li>对比2023年和2024年销售额波动情况</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>3. 测试用例（体现知识库价值）</h2>
+    <p>建议：每条用例先<strong>关闭对应知识</strong>问一遍，再<strong>启用知识</strong>问一遍，对比差异。下表「预期（有知识）」即知识库价值体现点。</p>
+
+    <h3>3.1 计算字段知识库</h3>
+    <table>
+      <thead><tr><th>#</th><th>提问</th><th>无知识时常见表现</th><th>有知识时预期</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-case">C1</span></td>
+          <td>2024年整体毛利率是多少？</td>
+          <td>找不到字段 / 胡乱用毛利当毛利率 / 拒答</td>
+          <td>按 毛利÷销售额 计算并出图；展开推理可见计算逻辑</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">C2</span></td>
+          <td>2024年各商品品类的毛利率对比</td>
+          <td>仅出毛利绝对值或失败</td>
+          <td>按品类分组的毛利率柱图/表</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">C3</span></td>
+          <td>去年天猫旗舰店的客单价</td>
+          <td>无客单价字段则失败</td>
+          <td>销售额÷订单量，渠道=天猫旗舰店，时间=2023</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.2 习惯知识库 · 口径映射</h3>
+    <table>
+      <thead><tr><th>#</th><th>提问</th><th>无知识时常见表现</th><th>有知识时预期</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-case">H1</span></td>
+          <td>2024年我们收入怎么样？</td>
+          <td>追问「收入指哪个字段」或选错字段；或追问主体</td>
+          <td>映射销售额；主体默认全表；结合时间类知识不乱追问</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">H2</span></td>
+          <td>看看GMV最高的前5个客户</td>
+          <td>不认 GMV</td>
+          <td>按客户名称汇总销售额 Top5（对照腾讯 DSL demo 场景）</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">H3</span></td>
+          <td>2024年流水按渠道拆开</td>
+          <td>「流水」无法映射</td>
+          <td>销售额 × 销售渠道分组</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">H4</span></td>
+          <td>2024年销售额（验证退货口径）</td>
+          <td>含退货订单，口径偏大</td>
+          <td>默认是否退货=否；可追问「含退货呢」做对比</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.3 习惯知识库 · 时间类（需关闭时间追问）</h3>
+    <table>
+      <thead><tr><th>#</th><th>提问</th><th>关闭知识+开启追问</th><th>启用时间知识+关闭追问</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-case">T1</span></td>
+          <td>收入怎么样？</td>
+          <td>智能追问补时间</td>
+          <td>直接按默认2024年出销售额结果（体现习惯知识）</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">T2</span></td>
+          <td>去年华南大区收入</td>
+          <td>可能再追问「去年」指哪年</td>
+          <td>稳定落到2023年 + 大区=华南 + 销售额</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.4 内容值知识（读取表头和内容）</h3>
+    <table>
+      <thead><tr><th>#</th><th>提问</th><th>仅读表头时</th><th>读取表头和内容时</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-case">V1</span></td>
+          <td>进口商品卖得怎么样（2024）</td>
+          <td>需用户写清「商品品类为进口商品…」</td>
+          <td>自动识别「进口商品」属于商品品类枚举并过滤</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">V2</span></td>
+          <td>抖音小店2024年销售额</td>
+          <td>可能选错字段或追问</td>
+          <td>命中销售渠道枚举值</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.5 事件知识库 + 波动归因</h3>
+    <p>前置：开启智能工具「波动归因」；录入 618 / 双十一事件知识。</p>
+    <table>
+      <thead><tr><th>#</th><th>提问</th><th>无事件知识</th><th>有事件知识</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-case">E1</span></td>
+          <td>对比2023年和2024年销售额波动情况，并做归因</td>
+          <td>只有维度贡献（大区/渠道/品类）数字拆解</td>
+          <td>总结中能结合「618/双十一」等事件解释波动（官方：事件知识仅归因模块生效）</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">E2</span></td>
+          <td>2024年6月相对2023年6月销售额为什么变化？</td>
+          <td>纯统计归因</td>
+          <td>总结可点出618大促时间窗</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.6 多轮对话（Session，非知识库但建议顺测）</h3>
+    <table>
+      <thead><tr><th>#</th><th>对话轮次</th><th>预期</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-case">M1</span></td>
+          <td>① 2024年华东销售额　② 那浙江呢？　③ 按月拆开</td>
+          <td>继承指标=销售额、时间=2024；②过滤省份=浙江；③按订单日期月粒度</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.7 智能选表（可选：同时启用主表+维表）</h3>
+    <table>
+      <thead><tr><th>#</th><th>配置</th><th>提问</th><th>预期</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-case">S1</span></td>
+          <td>智能选单表 + 仅主宽表</td>
+          <td>2024年各品类销售额</td>
+          <td>选中「零售交易日汇总表」</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-case">S2</span></td>
+          <td>智能选多表 + 主表与 dim_customer</td>
+          <td>A级客户2024年销售额合计</td>
+          <td>关联客户维表按客户等级过滤（需字段能关联：客户名称）</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>4. 推荐测试顺序（30～60 分钟）</h2>
+    <ol>
+      <li>导入 <code>dws_retail_trade_di.csv</code>，配表名/备注/字段备注，启用并「读取表头和内容」</li>
+      <li>先不建知识库，跑 H1、C1、T1，记录失败/追问现象</li>
+      <li>录入计算字段 + 习惯知识（非时间），重跑 C1/C2、H1/H2，对比</li>
+      <li>关闭时间追问 + 录入时间类习惯，重跑 T1</li>
+      <li>开启波动归因 + 事件知识，跑 E1</li>
+      <li>（可选）导入维表，测 S2；跑多轮 M1</li>
+    </ol>
+    <div class="note ok">验收标准：有知识后，C1/H1/T1/E1 四条必须明显优于无知识；展开推理中应能看到映射到「销售额」或毛利率计算公式。</div>
+  </section>
+
+  <section>
+    <h2>5. 样例数据预览（主表前几列逻辑）</h2>
+<pre>订单ID,订单日期,大区,省份,商品品类,销售渠道,客户名称,销售额,成本金额,毛利,订单量,是否退货
+O100001,2023-01-01,华东,浙江,进口商品,天猫旗舰店,华创商贸,12345.67,8000.00,4345.67,12,否
+...</pre>
+    <p>数据已做 618 / 双十一窗口放大，便于波动归因；毛利率需由知识库定义，表中仅有毛利与销售额。</p>
+  </section>
+</div>
+</body>
+</html>
