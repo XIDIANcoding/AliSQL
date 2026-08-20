@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>阿里云 Quick BI（智能小Q）组件交互与分层部署架构图（基于官方材料还原）</title>
+<style>
+  :root {
+    --text-main: #0f172a;
+    --text-muted: #475569;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f8fafc;
+    color: var(--text-main);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px 60px; }
+  .banner {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #fff; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px;
+  }
+  .banner h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .banner p { font-size: 13.5px; color: #94a3b8; }
+  section {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 26px 28px; margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 18px; font-weight: 700; margin-bottom: 14px;
+    border-bottom: 2px solid #ffedd5; padding-bottom: 8px;
+  }
+  h3 { font-size: 15px; font-weight: 700; margin: 18px 0 10px; color: #1e293b; }
+  p.note { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+  .diagram { border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: #fff; overflow-x: auto; }
+  .legend-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; margin-top: 16px;
+  }
+  .legend-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 7px 10px; font-size: 12.5px; color: #334155;
+  }
+  .legend-num {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid #334155; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; background: #fff; margin-top: 1px;
+  }
+  .legend-num.llm { border-color: #7c3aed; color: #6d28d9; }
+  .legend-num.kb { border-color: #d97706; color: #b45309; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { background: #f1f5f9; text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #334155; }
+  tr:last-child td { border-bottom: none; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag-cloud { background: #ffedd5; color: #c2410c; }
+  .tag-user { background: #fef3c7; color: #92400e; }
+  .tag-llm { background: #ede9fe; color: #6d28d9; }
+  a { color: #ea580c; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul.src { padding-left: 20px; font-size: 13.5px; }
+  ul.src li { margin-bottom: 6px; }
+  @media (max-width: 800px) { .legend-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="banner">
+    <h1>阿里云 Quick BI（智能小Q）组件交互与分层部署架构图</h1>
+    <p>组件名称均取自 InfoQ / 阿里云开发者社区官方演讲与文章 · 按「应用层 / AI 中间层（BI Agent）/ 自研领域模型层 / 知识与建模层 / BI 基座引擎层 / 数据源层」六层展开 · 数字编号为主流程，字母 L / K 为大模型与知识召回总线 · 官方未公开完整架构大图，本图严格按文字描述还原</p>
+  </div>
+
+  <section>
+    <h2>一、整体组件交互图（按部署位置分层）</h2>
+    <p class="note">数字编号 1~14 为主问数流程顺序；字母 <strong>L</strong>（紫色）为大模型调用总线、<strong>K</strong>（琥珀色）为元数据/知识库召回总线。实线为主查询链路，虚线为多步推理回传或反馈。各组件右下角「● LLM / ● 知识召回」徽标表示是否经过 L / K。</p>
+    <div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 1120" width="100%" height="auto" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#334155"/></marker>
+    <marker id="arrP" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#7C3AED"/></marker>
+    <marker id="arrK" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#D97706"/></marker>
+    <marker id="arrO" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#EA580C"/></marker>
+    <marker id="arrG" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#94A3B8"/></marker>
+    <marker id="arrE" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#059669"/></marker>
+  </defs>
+
+  <text x="1210" y="13" font-size="10" fill="#64748B" text-anchor="end">徽标：<tspan fill="#6D28D9" font-weight="700">● LLM</tspan>=调用大模型　<tspan fill="#B45309" font-weight="700">● 知识召回</tspan>=元数据/私域知识/样例召回</text>
+
+  <!-- ================= Layer 1 ================= -->
+  <rect x="30" y="20" width="1180" height="125" rx="10" fill="#FFF7ED" stroke="#FED7AA" stroke-width="1.2"/>
+  <rect x="30" y="20" width="1180" height="28" rx="10" fill="#EA580C"/>
+  <text x="44" y="39" font-size="13" font-weight="700" fill="#FFFFFF">应用层（智能小Q 接入与消费端）</text>
+  <text x="1196" y="39" font-size="11" fill="#FFEDD5" text-anchor="end">部署位置：用户侧多终端（Quick BI Web / 钉钉 / H5 / SDK 嵌出）</text>
+
+  <rect x="45" y="58" width="220" height="72" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="78" font-size="12" font-weight="700" fill="#C2410C">Quick BI 控制台 · 智能小Q</text>
+  <text x="55" y="96" font-size="10.5" fill="#475569">Chat BI 智能问数入口</text>
+  <text x="55" y="112" font-size="10.5" fill="#475569">权限管控 · 流量管理（前置）</text>
+
+  <rect x="280" y="58" width="200" height="72" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="290" y="78" font-size="12" font-weight="700" fill="#C2410C">钉钉智能助理 / H5</text>
+  <text x="290" y="96" font-size="10.5" fill="#475569">移动端对话问数</text>
+  <text x="290" y="112" font-size="10.5" fill="#475569">业务系统嵌出（SDK）</text>
+
+  <rect x="495" y="58" width="250" height="72" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="505" y="78" font-size="12" font-weight="700" fill="#C2410C">BI Copilot（智能搭建）</text>
+  <text x="505" y="96" font-size="10.5" fill="#475569">NL2API：指令 CMD + 参数 Params</text>
+  <text x="505" y="112" font-size="10.5" fill="#475569">与问数链路隔离的搭建助手通道</text>
+
+  <rect x="760" y="58" width="310" height="72" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="770" y="78" font-size="12" font-weight="700" fill="#C2410C">结果交互与消费</text>
+  <text x="770" y="96" font-size="10.5" fill="#475569">图表可交互修改 · 二次查询 · 血缘透出</text>
+  <text x="770" y="112" font-size="10.5" fill="#475569">点赞点踩回流训练样本 · 外置 Agent（Dify/百炼）</text>
+
+  <!-- ================= Layer 2: AI 中间层 ================= -->
+  <rect x="30" y="165" width="860" height="430" rx="10" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1.2"/>
+  <rect x="30" y="165" width="860" height="28" rx="10" fill="#2563EB"/>
+  <text x="44" y="184" font-size="13" font-weight="700" fill="#FFFFFF">AI 中间层 · BI Agent（任务分发与协同）</text>
+  <text x="876" y="184" font-size="11" fill="#DBEAFE" text-anchor="end">部署位置：Quick BI 服务端（阿里云 SaaS / 专属云）</text>
+
+  <rect x="45" y="205" width="175" height="95" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="225" font-size="12" font-weight="700" fill="#1D4ED8">前置处理</text>
+  <text x="55" y="243" font-size="10.5" fill="#475569">权限管控 · 流量管理</text>
+  <text x="55" y="259" font-size="10.5" fill="#475569">（原文明确）</text>
+  <text x="55" y="285" font-size="9.5" fill="#64748B">⚙ 确定性 · 不调用大模型</text>
+
+  <rect x="235" y="205" width="195" height="95" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="245" y="225" font-size="12" font-weight="700" fill="#1D4ED8">意图判断与任务拆分</text>
+  <text x="245" y="243" font-size="10.5" fill="#475569">领域模型判断意图类型</text>
+  <text x="245" y="259" font-size="10.5" fill="#475569">多步 → 拆子任务；单步 → 核心流程</text>
+  <text x="245" y="285" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM（自研领域模型）</text>
+
+  <rect x="445" y="205" width="220" height="110" rx="6" fill="#FFFFFF" stroke="#F59E0B" stroke-width="1.4"/>
+  <text x="455" y="225" font-size="12" font-weight="700" fill="#B45309">实体召回与上下文组装</text>
+  <text x="455" y="243" font-size="10.5" fill="#475569">① 元数据选取（表/字段/枚举值）</text>
+  <text x="455" y="259" font-size="10.5" fill="#475569">② 私域知识库召回 · 强制改写</text>
+  <text x="455" y="275" font-size="10.5" fill="#475569">③ Few-shot 样例 · 当前时间戳</text>
+  <text x="455" y="291" font-size="10.5" fill="#475569">④ 问题改写（补全隐藏信息）</text>
+  <text x="455" y="308" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM（改写）<tspan fill="#B45309">　● 知识召回</tspan></text>
+
+  <rect x="680" y="205" width="195" height="95" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="690" y="225" font-size="12" font-weight="700" fill="#1D4ED8">完整 Prompt 构建</text>
+  <text x="690" y="243" font-size="10.5" fill="#475569">任务描述 + 表字段 + 知识</text>
+  <text x="690" y="259" font-size="10.5" fill="#475569">+ 样例 → 送领域模型推理</text>
+  <text x="690" y="285" font-size="9.5" fill="#64748B">⚙ 工程拼装 · 再调 LLM</text>
+
+  <!-- 生成路径：增强 SQL（当前主路径） -->
+  <rect x="45" y="340" width="300" height="120" rx="6" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.4"/>
+  <text x="55" y="360" font-size="12" font-weight="700" fill="#C2410C">增强 SQL / DSL 生成（核心）</text>
+  <text x="55" y="378" font-size="10.5" fill="#475569">自研 BI 大模型输出「单表标准 SQL</text>
+  <text x="55" y="394" font-size="10.5" fill="#475569">+ 抽象算子」（时间/LOD/高级计算）</text>
+  <text x="55" y="410" font-size="10.5" fill="#475569">路线演进：纯 Text2DSL → Text2SQL</text>
+  <text x="55" y="426" font-size="10.5" fill="#475569">to DSL → 混合模式（原文）</text>
+  <text x="55" y="448" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM（自研领域模型 · 预训练+SFT+GRPO）</text>
+
+  <rect x="360" y="340" width="250" height="120" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="370" y="360" font-size="12" font-weight="700" fill="#1D4ED8">自研语法解析器</text>
+  <text x="370" y="378" font-size="10.5" fill="#475569">增强 SQL ↔ DSL 稳定互转</text>
+  <text x="370" y="394" font-size="10.5" fill="#475569">中间层将抽象 DSL 实例化为</text>
+  <text x="370" y="410" font-size="10.5" fill="#475569">Quick BI 查询参数</text>
+  <text x="370" y="448" font-size="9.5" fill="#64748B">⚙ 确定性 · 不调用大模型</text>
+
+  <rect x="625" y="340" width="250" height="120" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="635" y="360" font-size="12" font-weight="700" fill="#1D4ED8">多步计算 · NL2Python Agent</text>
+  <text x="635" y="378" font-size="10.5" fill="#475569">纯 NL2SQL 无法处理时触发</text>
+  <text x="635" y="394" font-size="10.5" fill="#475569">例：日环比超过 40% 的用户</text>
+  <text x="635" y="410" font-size="10.5" fill="#475569">取数后二次推理（可与引擎交互）</text>
+  <text x="635" y="448" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM（多次推理）</text>
+
+  <rect x="45" y="480" width="830" height="100" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-dasharray="5,4"/>
+  <text x="58" y="502" font-size="11.5" font-weight="700" fill="#0F172A">与腾讯差异要点（官方表述）</text>
+  <text x="58" y="522" font-size="10.5" fill="#475569">• 澄清偏「静默」：知识库强制改写 + 事后图表可交互纠偏；不强调腾讯式「ES 粗排 + 选项按钮事前澄清」</text>
+  <text x="58" y="540" font-size="10.5" fill="#475569">• 生成目标是「增强 SQL / 抽象算子」，再经语法解析器转 DSL；建模层（星型/雪花）对大模型透明，降低 JOIN 幻觉</text>
+  <text x="58" y="558" font-size="10.5" fill="#475569">• 使用自研领域模型（继续预训练 + 微调 + GRPO），非纯通用模型 + ICL；大小模型双通道：轻量路由 / 千问深度推理</text>
+
+  <!-- ================= Layer 3: 模型层 ================= -->
+  <rect x="910" y="165" width="300" height="200" rx="10" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1.2"/>
+  <rect x="910" y="165" width="300" height="28" rx="10" fill="#7C3AED"/>
+  <text x="924" y="184" font-size="13" font-weight="700" fill="#FFFFFF">自研领域模型层</text>
+  <text x="1196" y="184" font-size="10.5" fill="#EDE9FE" text-anchor="end">阿里云侧</text>
+
+  <rect x="925" y="205" width="270" height="42" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="938" y="222" font-size="11.5" font-weight="700" fill="#6D28D9">通义千问 · 数据分析领域微调模型</text>
+  <text x="938" y="238" font-size="9.5" fill="#475569">继续预训练 + SFT + GRPO（原文）</text>
+
+  <rect x="925" y="255" width="270" height="42" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="938" y="272" font-size="11.5" font-weight="700" fill="#6D28D9">轻量小模型（意图路由 / 快速响应）</text>
+  <text x="938" y="288" font-size="9.5" fill="#475569">大小模型双通道路由分发</text>
+
+  <rect x="925" y="305" width="270" height="42" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="938" y="322" font-size="11.5" font-weight="700" fill="#6D28D9">通用大模型（洞察解读 / Prompt+Multi-Agent）</text>
+  <text x="938" y="338" font-size="9.5" fill="#475569">数据解读 · 总结 · 外置工作流</text>
+
+  <!-- ================= Layer 4: 知识与建模 ================= -->
+  <rect x="910" y="385" width="260" height="280" rx="10" fill="#FFFBEB" stroke="#FDE68A" stroke-width="1.2"/>
+  <rect x="910" y="385" width="260" height="28" rx="10" fill="#D97706"/>
+  <text x="924" y="404" font-size="13" font-weight="700" fill="#FFFFFF">知识与建模层</text>
+  <text x="1156" y="404" font-size="10.5" fill="#FEF3C7" text-anchor="end">Quick BI 服务端</text>
+
+  <rect x="925" y="422" width="230" height="42" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="439" font-size="11" font-weight="700" fill="#B45309">OLAP 逻辑建模层</text>
+  <text x="936" y="455" font-size="9.5" fill="#475569">星型/雪花 · JOIN 对模型透明</text>
+
+  <rect x="925" y="470" width="230" height="42" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="487" font-size="11" font-weight="700" fill="#B45309">元数据 · 维度枚举值</text>
+  <text x="936" y="503" font-size="9.5" fill="#475569">表字段信息 · Schema Linking</text>
+
+  <rect x="925" y="518" width="230" height="42" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="535" font-size="11" font-weight="700" fill="#B45309">私域知识库 · 同义词/强制改写</text>
+  <text x="936" y="551" font-size="9.5" fill="#475569">企业口径 · 静默澄清</text>
+
+  <rect x="925" y="566" width="230" height="42" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="583" font-size="11" font-weight="700" fill="#B45309">Few-shot 样例库（点赞点踩）</text>
+  <text x="936" y="599" font-size="9.5" fill="#475569">数据飞轮 · 65%→92% 案例</text>
+
+  <rect x="925" y="614" width="230" height="38" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="936" y="631" font-size="11" font-weight="700" fill="#B45309">抽象算子库</text>
+  <text x="936" y="646" font-size="9.5" fill="#475569">时间算子 · LOD · 高级计算符</text>
+
+  <!-- ================= Layer 5: BI 基座引擎 ================= -->
+  <rect x="30" y="615" width="860" height="260" rx="10" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1.2"/>
+  <rect x="30" y="615" width="860" height="28" rx="10" fill="#059669"/>
+  <text x="44" y="634" font-size="13" font-weight="700" fill="#FFFFFF">BI 基座引擎层（查询分析 · 权限 · 方言 · 渲染）</text>
+  <text x="876" y="634" font-size="11" fill="#D1FAE5" text-anchor="end">Quick BI 服务端（数据库引擎外部，不在数据库内核）</text>
+
+  <rect x="45" y="655" width="240" height="100" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="675" font-size="12" font-weight="700" fill="#047857">查询分析引擎</text>
+  <text x="55" y="693" font-size="10.5" fill="#475569">接收查询参数 · 复杂计算字段展开</text>
+  <text x="55" y="709" font-size="10.5" fill="#475569">LOD → 适配方言的 JOIN（原文示例）</text>
+  <text x="55" y="725" font-size="10.5" fill="#475569">物理 SQL + 内存计算取数</text>
+  <text x="55" y="745" font-size="9.5" fill="#94A3B8">⚙ 确定性 · 不调用大模型</text>
+
+  <rect x="300" y="655" width="180" height="100" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="310" y="675" font-size="12" font-weight="700" fill="#047857">行列权限注入</text>
+  <text x="310" y="693" font-size="10.5" fill="#475569">引擎层注入用户行列权限</text>
+  <text x="310" y="709" font-size="10.5" fill="#475569">（原文明确）</text>
+  <text x="310" y="725" font-size="10.5" fill="#475569">阿里云 RAM 体系协同</text>
+  <text x="310" y="745" font-size="9.5" fill="#94A3B8">⚙ 确定性</text>
+
+  <rect x="495" y="655" width="180" height="100" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="505" y="675" font-size="12" font-weight="700" fill="#047857">方言翻译编译器</text>
+  <text x="505" y="693" font-size="10.5" fill="#475569">40~50 种数据源方言</text>
+  <text x="505" y="709" font-size="10.5" fill="#475569">MySQL 5.7/8.0 函数差异等</text>
+  <text x="505" y="725" font-size="10.5" fill="#475569">屏蔽大模型方言负担</text>
+  <text x="505" y="745" font-size="9.5" fill="#94A3B8">⚙ 确定性</text>
+
+  <rect x="690" y="655" width="185" height="100" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="700" y="675" font-size="12" font-weight="700" fill="#047857">渲染引擎 · AntV</text>
+  <text x="700" y="693" font-size="10.5" fill="#475569">G2/S2/L7 · Chart Advisor</text>
+  <text x="700" y="709" font-size="10.5" fill="#475569">图表可交互 · 二次查询</text>
+  <text x="700" y="725" font-size="10.5" fill="#475569">查询元数据血缘透出</text>
+  <text x="700" y="745" font-size="9.5" fill="#94A3B8">⚙ 可视化 · 解读可调 LLM</text>
+
+  <rect x="45" y="770" width="400" height="85" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="790" font-size="12" font-weight="700" fill="#047857">内置洞察算法 + 大模型洞察解读</text>
+  <text x="55" y="808" font-size="10.5" fill="#475569">统计算法做异动/维度贡献；通用模型 Prompt+Multi-Agent 做解读</text>
+  <text x="55" y="824" font-size="10.5" fill="#475569">外置 Agent 接入（Dify / 百炼）对接小Q 对话流</text>
+  <text x="55" y="844" font-size="9.5" font-weight="700" fill="#6D28D9">● LLM（解读）　算法本身不调用</text>
+
+  <rect x="460" y="770" width="415" height="85" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="470" y="790" font-size="12" font-weight="700" fill="#047857">分析引擎能力基座</text>
+  <text x="470" y="808" font-size="10.5" fill="#475569">数据连接 · 建模 · 复杂分析 · 高性能查询复用</text>
+  <text x="470" y="824" font-size="10.5" fill="#475569">整套系统在 Quick BI 已有能力基座上开发（原文）</text>
+  <text x="470" y="844" font-size="9.5" fill="#94A3B8">保证可用 · 可信 · 结果可交互（三大目标）</text>
+
+  <!-- ================= Layer 6 ================= -->
+  <rect x="30" y="900" width="1180" height="100" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+  <rect x="30" y="900" width="1180" height="28" rx="10" fill="#475569"/>
+  <text x="44" y="919" font-size="13" font-weight="700" fill="#FFFFFF">数据源层（物理数据库 / 湖仓引擎）</text>
+  <text x="1196" y="919" font-size="11" fill="#E2E8F0" text-anchor="end">部署位置：客户云资源 / 阿里云数据服务（执行物理 SQL）</text>
+
+  <rect x="45" y="938" width="700" height="50" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="55" y="958" font-size="12" font-weight="700" fill="#334155">40~50 种数据源方言执行端</text>
+  <text x="55" y="976" font-size="10.5" fill="#475569">MaxCompute · Hologres · PolarDB（含 IMCI）· MySQL · ClickHouse · Oracle 等</text>
+
+  <rect x="760" y="938" width="430" height="50" rx="6" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="770" y="958" font-size="12" font-weight="700" fill="#C2410C">边界说明</text>
+  <text x="770" y="976" font-size="10.5" fill="#7C2D12">增强 SQL→物理 SQL 的编译在 BI 引擎外部完成，库内只执行</text>
+
+  <!-- ================= Edges ================= -->
+  <!-- 1 -->
+  <path d="M155,130 L155,201" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="155" cy="166" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="155" y="169.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">1</text>
+
+  <!-- 2 -->
+  <path d="M220,252 L231,252" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="226" cy="238" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="226" y="241.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">2</text>
+
+  <!-- 3 -->
+  <path d="M430,252 L441,252" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="436" cy="238" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="436" y="241.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">3</text>
+
+  <!-- 4 -->
+  <path d="M665,252 L676,252" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="670" cy="238" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="670" y="241.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">4</text>
+
+  <!-- 5 Prompt→增强SQL -->
+  <path d="M780,300 L780,320 L195,320 L195,336" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="450" cy="320" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="450" y="323.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">5</text>
+
+  <!-- 6 增强SQL→解析器 -->
+  <path d="M345,400 L356,400" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="350" cy="386" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="350" y="389.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">6</text>
+
+  <!-- 7 可选多步 -->
+  <path d="M610,400 L621,400" fill="none" stroke="#EA580C" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrO)"/>
+  <circle cx="615" cy="386" r="9" fill="#fff" stroke="#EA580C" stroke-width="1.2"/>
+  <text x="615" y="389.5" text-anchor="middle" font-size="9" font-weight="700" fill="#EA580C">7</text>
+
+  <!-- 8 解析器→查询引擎 -->
+  <path d="M485,460 L485,611" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="485" cy="535" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="485" y="538.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">8</text>
+
+  <!-- 9 引擎内部到权限（示意） -->
+  <path d="M285,705 L296,705" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="290" cy="691" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="290" y="694.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">9</text>
+
+  <!-- 10 权限→方言 -->
+  <path d="M480,705 L491,705" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="485" cy="691" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="485" y="694.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">10</text>
+
+  <!-- 11 方言→数据源 -->
+  <path d="M585,755 L585,896" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="585" cy="825" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="585" y="828.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">11</text>
+
+  <!-- 12 结果回引擎 -->
+  <path d="M200,900 L200,875" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr)"/>
+  <circle cx="182" cy="888" r="9" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+  <text x="182" y="891.5" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">12</text>
+
+  <!-- 13 渲染→应用 -->
+  <path d="M875,705 L1225,705 L1225,90 L1214,90" fill="none" stroke="#059669" stroke-width="1.5" marker-end="url(#arrE)"/>
+  <circle cx="1225" cy="400" r="9" fill="#fff" stroke="#059669" stroke-width="1.2"/>
+  <text x="1225" y="403.5" text-anchor="middle" font-size="9" font-weight="700" fill="#059669">13</text>
+
+  <!-- 14 点赞回流 -->
+  <path d="M900,130 L900,586 L921,586" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrG)"/>
+  <circle cx="900" cy="360" r="9" fill="#fff" stroke="#94A3B8" stroke-width="1.2"/>
+  <text x="900" y="363.5" text-anchor="middle" font-size="9" font-weight="700" fill="#64748B">14</text>
+
+  <!-- L bus -->
+  <path d="M890,250 L906,250" fill="none" stroke="#7C3AED" stroke-width="2" marker-end="url(#arrP)"/>
+  <circle cx="898" cy="234" r="9" fill="#fff" stroke="#7C3AED" stroke-width="1.4"/>
+  <text x="898" y="237.5" text-anchor="middle" font-size="9" font-weight="700" fill="#7C3AED">L</text>
+
+  <!-- K bus -->
+  <path d="M910,490 L894,490" fill="none" stroke="#D97706" stroke-width="2" marker-end="url(#arrK)"/>
+  <circle cx="902" cy="474" r="9" fill="#fff" stroke="#D97706" stroke-width="1.4"/>
+  <text x="902" y="477.5" text-anchor="middle" font-size="9" font-weight="700" fill="#B45309">K</text>
+</svg>
+    </div>
+
+    <div class="legend-grid">
+      <div class="legend-item"><span class="legend-num">1</span>用户提问进入智能小Q；前置处理做权限管控与流量管理（原文，不调大模型）</div>
+      <div class="legend-item"><span class="legend-num">2</span>领域模型做意图判断；多步任务拆子任务，单步进入核心流程（<strong>L</strong>）</div>
+      <div class="legend-item"><span class="legend-num">3</span>实体召回：元数据/枚举值/私域知识/Few-shot/时间戳组装；问题改写补全隐藏信息（<strong>K</strong> + 改写用 <strong>L</strong>）</div>
+      <div class="legend-item"><span class="legend-num">4</span>工程侧组装完整 Prompt，送自研 BI 领域模型</div>
+      <div class="legend-item"><span class="legend-num">5</span>领域模型生成增强 SQL（单表标准 SQL + 抽象算子：时间/LOD/高级计算）（<strong>L</strong>）</div>
+      <div class="legend-item"><span class="legend-num">6</span>自研语法解析器将增强 SQL 稳定转为 DSL，再实例化为 Quick BI 查询参数（确定性，不用大模型）</div>
+      <div class="legend-item"><span class="legend-num">7</span>（可选）多步计算走 NL2Python Agent：引擎取数后大模型二次推理（虚线，可与引擎交互）</div>
+      <div class="legend-item"><span class="legend-num">8</span>查询参数进入查询分析引擎（BI 基座，数据库外部）</div>
+      <div class="legend-item"><span class="legend-num">9</span>引擎展开复杂计算字段（如 LOD→方言 JOIN），并注入用户行列权限</div>
+      <div class="legend-item"><span class="legend-num">10</span>方言翻译编译器生成目标库物理 SQL（40~50 种方言）</div>
+      <div class="legend-item"><span class="legend-num">11</span>物理 SQL（及必要内存计算）下发数据源执行</div>
+      <div class="legend-item"><span class="legend-num">12</span>结果返回引擎；渲染引擎出图；洞察算法/大模型解读可叠加</div>
+      <div class="legend-item"><span class="legend-num">13</span>图表回流应用层：可交互修改、二次查询、血缘透出（「结果可交互」）</div>
+      <div class="legend-item"><span class="legend-num">14</span>点赞点踩沉淀 Few-shot / 训练数据飞轮（服务领域模型强化，虚线）</div>
+      <div class="legend-item"><span class="legend-num llm">L</span><strong>大模型调用总线</strong>：步骤 2 / 3（问题改写）/ 5 / 7（多步）及洞察解读；大小模型双通道</div>
+      <div class="legend-item"><span class="legend-num kb">K</span><strong>知识召回总线</strong>：步骤 3 的元数据、枚举值、私域知识、样例、建模层字段语义</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>二、组件部署位置与证据来源对照表</h2>
+    <table>
+      <thead>
+        <tr><th>组件（官方专属名称）</th><th>所在层</th><th>部署位置</th><th>是否使用大模型 / 知识召回</th><th>证据来源</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>智能小Q / Quick BI 控制台 / 钉钉 / SDK</td><td>应用层</td><td><span class="tag tag-user">用户侧多终端</span></td><td>否</td><td>InfoQ 演讲「大模型落地 QuickBI 全景」</td></tr>
+        <tr><td>BI Copilot · NL2API（智能搭建）</td><td>应用层·旁路</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td><span class="tag tag-llm">LLM</span>（指令识别微调）</td><td>InfoQ「BI Copilot」</td></tr>
+        <tr><td>前置处理（权限管控 · 流量管理）</td><td>AI 中间层</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td>否</td><td>InfoQ「一个问数问题的工程链路」</td></tr>
+        <tr><td>意图判断与任务拆分（BI Agent）</td><td>AI 中间层</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td><span class="tag tag-llm">领域模型</span></td><td>InfoQ「工程链路」+「通用大模型与自研领域模型」</td></tr>
+        <tr><td>实体召回 · 问题改写 · Prompt 构建</td><td>AI 中间层</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td>召回否 / 改写<span class="tag tag-llm">LLM</span></td><td>InfoQ「一个问数问题的大模型旅程」</td></tr>
+        <tr><td>增强 SQL / DSL 生成</td><td>AI 中间层</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td><span class="tag tag-llm">自研 BI 大模型</span></td><td>InfoQ「基于 BI 引擎的 NL2SQL 算法演进」</td></tr>
+        <tr><td>自研语法解析器（增强 SQL↔DSL）</td><td>AI 中间层</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td>否（确定性）</td><td>InfoQ「增强 SQL 和 DSL 是可以稳定转换的」</td></tr>
+        <tr><td>多步计算 · NL2Python Agent</td><td>AI 中间层</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td><span class="tag tag-llm">多次推理</span></td><td>InfoQ「多步计算」</td></tr>
+        <tr><td>通义千问领域微调模型 · 轻量小模型 · 通用模型</td><td>模型层</td><td><span class="tag tag-cloud">阿里云侧</span></td><td>—</td><td>InfoQ + 阿里云开发者文章</td></tr>
+        <tr><td>星型/雪花建模层 · 元数据 · 私域知识 · Few-shot · 抽象算子库</td><td>知识与建模层</td><td><span class="tag tag-cloud">Quick BI 服务端</span></td><td>被 K 检索</td><td>InfoQ「Text2DSL：丰富的算子和函数」</td></tr>
+        <tr><td>查询分析引擎 · 行列权限 · 方言翻译 · 渲染引擎（AntV）</td><td>BI 基座引擎层</td><td><span class="tag tag-cloud">Quick BI 服务端（库外）</span></td><td>否（解读可调 LLM）</td><td>InfoQ「工程链路」+「智能小Q分层架构」</td></tr>
+        <tr><td>MaxCompute / Hologres / PolarDB / MySQL 等</td><td>数据源层</td><td><span class="tag tag-user">客户/云数据域</span></td><td>否（只执行）</td><td>InfoQ「四五十种方言」</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>三、落地开发能力清单（对照腾讯图第三章体例）</h2>
+    <p class="note">若你已有 MySQL + 库内对接大模型，对照阿里链路时：阿里更依赖「自研领域模型 + 抽象算子 + 建模层」；你可<strong>用通用模型 + ICL 替代领域微调</strong>，用 <strong>Cube.js / YAML 指标层</strong>替代星型建模，用 <strong>SQLGlot</strong> 替代自研语法解析器与方言编译，优先走腾讯式 Text2SQL MVP，再逐步补阿里式算子与建模。</p>
+    <table>
+      <thead>
+        <tr><th>阿里组件能力</th><th>你是否还需开发</th><th>开源替代</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>前置权限/流量 · Session · Prompt 编排</td><td><strong>要</strong></td><td>FastAPI + Redis/MySQL 会话表</td></tr>
+        <tr><td>意图判断与任务拆分</td><td><strong>要（轻量）</strong></td><td>一次 LLM 调用；LangGraph</td></tr>
+        <tr><td>元数据/知识/样例召回</td><td><strong>要（重点）</strong></td><td>MySQL 元数据表 + FULLTEXT；Vanna 训练库</td></tr>
+        <tr><td>自研领域模型（预训练+SFT+GRPO）</td><td><strong>可不必</strong>（成本高）</td><td>复用你已有库内 LLM + ICL</td></tr>
+        <tr><td>增强 SQL + 抽象算子 + 自研解析器</td><td>MVP <strong>可简化为 Text2SQL</strong>；二期再算子化</td><td>SQLGlot；Cube.js Query JSON</td></tr>
+        <tr><td>查询引擎内 LOD 展开 · 40+ 方言</td><td>单 MySQL 时 <strong>可大幅简化</strong></td><td>SQLGlot；自研轻量同环比模板</td></tr>
+        <tr><td>行列权限注入</td><td><strong>要</strong></td><td>SQLGlot AST 注入；MySQL 视图</td></tr>
+        <tr><td>AntV 渲染 · Chart Advisor</td><td><strong>要前端</strong></td><td>ECharts；@antv/ava（开源）</td></tr>
+        <tr><td>多步 NL2Python · 洞察算法</td><td><strong>二期</strong></td><td>LangGraph + Python；statsmodels</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>四、还原依据与原始出处</h2>
+    <p class="note">阿里官方公开了分层架构说明与「一个问数问题的工程链路 / 大模型旅程」文字描述，但完整组件交互大图需按演讲文稿还原。本图组件名称与步骤均锚定下列材料；「大小模型双通道」与「AntV Chart Advisor」在演讲/生态材料中有对应表述。</p>
+    <ul class="src">
+      <li>王璟尧 @ InfoQ / QCon：<a href="https://www.infoq.cn/article/xK8RMrfsu3070hI90ij4" target="_blank">《从数据到决策：AI 驱动的 Quick BI 架构设计与实践》</a>（分层架构、工程链路、增强 SQL、语法解析器、LOD 转义、多步计算、训练飞轮）</li>
+      <li>阿里云开发者社区：<a href="https://developer.aliyun.com/article/1636184" target="_blank">《基于大模型和Quick BI的NL2SQL技术与应用实践》</a>（抽象 SQL 算子扩展、三位一体）</li>
+      <li>阿里云开发者社区：<a href="https://developer.aliyun.com/article/1667372" target="_blank">《AI时代如何让大模型「读懂」企业数据》</a>（智能小Q 四层架构、大小模型协同）</li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>
