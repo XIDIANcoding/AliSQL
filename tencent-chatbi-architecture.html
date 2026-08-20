@@ -71,7 +71,7 @@
 
   <div class="banner">
     <h1>腾讯云 ChatBI 组件交互与分层部署架构图</h1>
-    <p>组件名称均取自腾讯官方技术文章与产品手册的真实专属名称 · 按「应用层 / Agent 层（AI 中间处理）/ 大模型层 / 知识库层 / BI 引擎层 / 数据源层」六层展开 · Text2SQL 与 Text2DSL 为相互隔离的双通道 · 每个组件标注「● LLM / ● 知识库」使用徽标，总线 L / K 与流程序号一一对应</p>
+    <p>组件名称均取自腾讯官方技术文章与产品手册的真实专属名称 · 六层部署架构 + 落地开发能力清单 · 针对「已有 MySQL + 库内对接大模型」场景标注仍需开发项与开源替代</p>
   </div>
 
   <section>
@@ -428,8 +428,210 @@
   </section>
 
   <section>
-    <h2>三、还原依据与原始出处</h2>
-    <p class="note">腾讯官方材料中包含意图澄清流程图与 DSL 协议示例等局部图示，但未公开完整的分层架构大图；本图为按以下官方材料的文字描述进行的组件级还原。其中「图表渲染引擎的结果缓存机制」为根据"图表一键切换无需重新计算"的产品行为做出的合理推断；「简单/复杂查询在两条通道间的分流策略」为根据官方"默认 Text2SQL + Text2DSL 解决复杂计算"表述做出的合理推断；其余组件与交互均有原文依据。</p>
+    <h2>三、落地开发能力清单：你已有 MySQL + 库内对接大模型时，还要开发什么</h2>
+    <p class="note">前提假设：你已有 <strong>MySQL 引擎</strong>，且 <strong>MySQL 内部已对接大模型</strong>（例如通过库内 AI 函数 / 插件 / UDF / 侧车服务，可从 SQL 侧或服务端调用 LLM）。本章把上文腾讯 ChatBI 全链路组件<strong>具体化为可开发能力</strong>，并标注：哪些已被你现有能力覆盖、哪些仍需自研、可用哪些开源组件替代。</p>
+
+    <h3>3.1 先说结论：库内对接大模型 ≠ ChatBI 已完成</h3>
+    <p class="note" style="margin-bottom:14px;">「MySQL 内对接大模型」通常只覆盖 <strong>LLM 调用通道</strong>（以及可选的库内向量/AI 函数）。ChatBI 真正要交付的是：会话与澄清、知识库治理、选表与 Schema Linking、受约束的 SQL/DSL 生成、权限与安全校验、图表与洞察。这些大部分在<strong>数据库外部的应用 / Agent 服务</strong>中实现。对你而言：<strong>大模型层与数据源执行层已基本具备；Agent 层、知识库层、BI 引擎层、应用层仍是主战场。</strong></p>
+
+    <div class="legend-grid" style="margin-bottom:18px;">
+      <div class="legend-item" style="border-left:4px solid #16a34a;"><strong style="color:#15803d;">已具备 / 可少做</strong>：MySQL 查询执行、LLM 调用通道、MySQL 单方言（可暂缓方言转换）</div>
+      <div class="legend-item" style="border-left:4px solid #ea580c;"><strong style="color:#c2410c;">必须自研或组装</strong>：会话状态、澄清 UX、四类知识库、选表、生成编排、权限注入、前端对话+图表</div>
+      <div class="legend-item" style="border-left:4px solid #2563eb;"><strong style="color:#1d4ed8;">优先开源替代</strong>：Vanna / Wren AI、SQLGlot、LangGraph、Cube.js、ECharts / AntV AVA、pg_trgm 或 Meilisearch（检索）</div>
+      <div class="legend-item" style="border-left:4px solid #7c3aed;"><strong style="color:#6d28d9;">二期再做</strong>：完整 Text2DSL + 4-Agent、波动归因统计算法、多数据源方言、看板固化嵌出</div>
+    </div>
+
+    <h3>3.2 全链路组件 → 需开发能力 → 你的现状 → 开源替代</h3>
+    <div style="overflow-x:auto; border:1px solid var(--border); border-radius:8px;">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:140px;">腾讯链路组件</th>
+          <th style="min-width:160px;">具体化为需开发的能力</th>
+          <th style="min-width:120px;">你已有 MySQL+库内LLM 时</th>
+          <th style="min-width:200px;">仍需做什么</th>
+          <th style="min-width:200px;">可用开源组件</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>多轮对话模块</strong></td>
+          <td>会话 Session 管理；历史原文 + 结构化槽位（指标/维度/时间/过滤）；指代消解后生成完整提问</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span> LLM 在库内不能自动管 Session</td>
+          <td><strong>必须开发</strong>：Session 存储（Redis/MySQL 表）+ 补全逻辑（规则或调 LLM）</td>
+          <td>LangGraph / LlamaIndex Memory；Redis / MySQL 存会话表</td>
+        </tr>
+        <tr>
+          <td><strong>意图分类模块</strong></td>
+          <td>拒识（无关话题）；判断时间/主体是否齐全；路由到澄清或生成</td>
+          <td><span class="tag" style="background:#fef3c7;color:#92400e;">可借用 LLM</span> 用库内 LLM 做三分类</td>
+          <td><strong>轻量自研</strong>：分类 Prompt + 路由代码；拒识可加敏感词规则</td>
+          <td>一次 LLM 调用即可；可选轻量分类模型</td>
+        </tr>
+        <tr>
+          <td><strong>意图澄清模块</strong></td>
+          <td>缺槽追问；知识库候选字段召回（粗排）；LLM/向量精排；选项按钮 UX</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span> 需检索 + 前端交互</td>
+          <td><strong>必须开发</strong>：粗排检索 + 精排 + 前端澄清选项组件</td>
+          <td>粗排：Meilisearch / Elasticsearch / MySQL FULLTEXT；精排：embedding + 库内 LLM；前端自研按钮组</td>
+        </tr>
+        <tr>
+          <td><strong>智能选表</strong></td>
+          <td>表名/备注/字段备注语义匹配；单表或关联选表；可手动切换</td>
+          <td><span class="tag" style="background:#fef3c7;color:#92400e;">可部分借用</span> LLM 读表元数据做选表</td>
+          <td><strong>必须开发</strong>：元数据索引 + 选表 Prompt/检索；MVP 可强制用户选表以降低难度</td>
+          <td>Vanna.ai / Wren AI 的 schema 检索；information_schema 定时同步</td>
+        </tr>
+        <tr>
+          <td><strong>数据表 / 计算字段 / 习惯 / 事件知识库 + ICL 样本库</strong></td>
+          <td>表头与枚举值索引；指标口径；习惯规则；事件知识；点赞点踩 few-shot</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span>（除非你已建元数据表）</td>
+          <td><strong>必须开发（核心）</strong>：知识库表结构 + 管理后台 + 读取/同步任务</td>
+          <td>知识存在 MySQL 表；检索用 FULLTEXT 或向量扩展；OpenMetadata（可选）；Few-shot 表自研</td>
+        </tr>
+        <tr>
+          <td><strong>Text2SQL 生成通道（默认）</strong></td>
+          <td>组装 Prompt（DDL/知识/样例）→ LLM 生成 MySQL SQL → 白名单校验</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">已具备 LLM 通道</span> 可直接调用库内大模型</td>
+          <td><strong>仍需开发</strong>：Prompt 组装、Schema Linking、只读执行与超时；不要裸调「问题→SQL」</td>
+          <td><strong>Vanna.ai</strong>（首选）、Wren AI、DB-GPT；校验用 <strong>SQLGlot</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Text2DSL Multi-Agent（4 Agent）</strong></td>
+          <td>DSL JSON 协议；基本参数/维度/指标/条件分 Agent 生成；复杂同环比等</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">二期</span> MVP 可先不做</td>
+          <td>P0 可跳过；P1 再定义 DSL + LangGraph 四节点；编译器需自研或用 Cube</td>
+          <td>LangGraph；Cube.js Query JSON 作 DSL 替代；SQLGlot 编译</td>
+        </tr>
+        <tr>
+          <td><strong>DSL 整合与正确性验证</strong></td>
+          <td>合并 Agent 输出；JSON Schema 校验；字段白名单</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">随 DSL 二期</span></td>
+          <td>确定性工程代码（几十～几百行）</td>
+          <td>jsonschema / pydantic；SQLGlot AST 检查</td>
+        </tr>
+        <tr>
+          <td><strong>方言转换工具</strong></td>
+          <td>MySQL SQL → 其他方言</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">可跳过</span> 你只有 MySQL</td>
+          <td>暂不开发；未来多源再用 SQLGlot transpile</td>
+          <td>SQLGlot</td>
+        </tr>
+        <tr>
+          <td><strong>查询编译器（拖拽协议）</strong></td>
+          <td>DSL → 物理 SQL；复杂计算拆多条 SQL</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">二期</span>；走 Text2SQL 时可不做</td>
+          <td>若坚持 DSL：自研轻量编译器或直接用 Cube.js</td>
+          <td><strong>Cube.js</strong>（语义层+编译+缓存）</td>
+        </tr>
+        <tr>
+          <td><strong>数据权限引擎</strong></td>
+          <td>项目/租户隔离；行级过滤；禁止写操作；statement_timeout</td>
+          <td><span class="tag" style="background:#fef3c7;color:#92400e;">MySQL 可部分承载</span> 无 PG 级原生 RLS</td>
+          <td><strong>必须开发</strong>：AST 注入 tenant/org 条件，或视图/强制 WHERE；只读账号</td>
+          <td><strong>SQLGlot</strong> 改写 WHERE；MySQL 视图 + 应用层强制条件；只读用户</td>
+        </tr>
+        <tr>
+          <td><strong>大模型层（混元/DeepSeek 等）</strong></td>
+          <td>提供 LLM 推理能力</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">已具备</span> MySQL 内已对接</td>
+          <td>封装统一调用接口（超时、限流、日志）；Agent 服务调你现有通道即可</td>
+          <td>不必再引 Ollama/vLLM，除非要换模型；可用 LiteLLM 做统一适配层</td>
+        </tr>
+        <tr>
+          <td><strong>用户数据库执行</strong></td>
+          <td>执行只读 SQL；返回结果集</td>
+          <td><span class="tag" style="background:#dcfce7;color:#166534;">已具备</span> MySQL</td>
+          <td>配置只读账号、超时、最大返回行数、EXPLAIN Dry-Run</td>
+          <td>MySQL 原生；连接池（HikariCP / SQLAlchemy）</td>
+        </tr>
+        <tr>
+          <td><strong>图表渲染引擎</strong></td>
+          <td>按结果推荐图表；柱/线/饼/表；切换不重算</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span></td>
+          <td><strong>必须开发前端</strong>：结果缓存 + 图表组件</td>
+          <td><strong>Apache ECharts</strong>；<strong>@antv/ava</strong>（ChartAdvisor 智能推荐）</td>
+        </tr>
+        <tr>
+          <td><strong>智能工具：数据解读 / 波动归因</strong></td>
+          <td>结果文字解读；维度/指标归因统计算法；总结建议</td>
+          <td><span class="tag" style="background:#e0e7ff;color:#3730a3;">二期</span>；解读可先用 LLM 总结结果</td>
+          <td>P0：把结果表塞给 LLM 写 3 条洞察；P2：再上贡献度/SHAP</td>
+          <td>解读：库内 LLM；归因：Python statsmodels / scikit-learn / shap</td>
+        </tr>
+        <tr>
+          <td><strong>应用层（控制台 / H5 / 嵌出）</strong></td>
+          <td>对话 UI、澄清选项、SQL 白盒、点赞点踩、嵌出鉴权</td>
+          <td><span class="tag" style="background:#fee2e2;color:#991b1b;">未覆盖</span></td>
+          <td><strong>必须开发</strong>：至少 Web 对话页；嵌出可二期</td>
+          <td>CopilotKit / Assistant UI；Next.js / React；自研澄清按钮区</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>3.3 按优先级的开发清单（针对「MySQL + 库内 LLM」）</h3>
+    <table>
+      <thead>
+        <tr><th>优先级</th><th>要交付的能力</th><th>建议做法</th><th>开源主选</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>P0 · MVP（先跑通可信问数）</strong></td>
+          <td>① Session 多轮补全　② 知识库（表结构+同义词+口径）　③ Schema Linking　④ Text2SQL（调你已有库内 LLM）　⑤ SQLGlot 校验 + 权限 WHERE 注入　⑥ 只读执行　⑦ 对话前端 + ECharts</td>
+          <td>先走腾讯「默认 Text2SQL」路线；单表/大宽表；澄清可先做「缺时间就追问」简化版</td>
+          <td>Vanna.ai + SQLGlot + ECharts + React 对话页</td>
+        </tr>
+        <tr>
+          <td><strong>P1 · 准确率与体验</strong></td>
+          <td>① ES/全文粗排 + 澄清选项按钮　② 智能选表　③ ICL 点赞点踩样本库　④ 结果 LLM 解读　⑤ Dry-Run / Self-Reflection 重试</td>
+          <td>照抄腾讯：澄清候选只从知识库出；点赞回流 few-shot</td>
+          <td>Meilisearch 或 MySQL FULLTEXT；LangGraph 重试环</td>
+        </tr>
+        <tr>
+          <td><strong>P2 · 复杂分析与产品化</strong></td>
+          <td>① Text2DSL + 4-Agent　② Cube/语义层　③ 波动归因算法　④ 嵌出 Token　⑤ 看板固化</td>
+          <td>复杂同环比再上 DSL；归因「算法算数、LLM 写话」</td>
+          <td>Cube.js；LangGraph；shap / XGBoost</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>3.4 推荐最小技术栈（贴合你现有资产）</h3>
+<pre style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:8px;font-size:12.5px;overflow-x:auto;line-height:1.55;margin:12px 0;">【应用层】React / Next.js + CopilotKit（对话）+ ECharts / @antv/ava（图表）
+        │
+【Agent 服务】FastAPI / Java
+  ├─ Session（Redis 或 MySQL 会话表）：历史原文 + 槽位
+  ├─ 意图分类 / 多轮补全 / 澄清编排：Prompt → 调用「MySQL 已对接的 LLM」
+  ├─ 知识库检索：MySQL 元数据表 + FULLTEXT / 向量（若有）
+  ├─ Text2SQL：Vanna.ai 或自研 Prompt 组装 → 库内 LLM
+  ├─ 校验与权限：SQLGlot AST 检查 + 强制注入 tenant_id / org_id
+  └─ 执行：MySQL 只读账号 + statement_timeout + LIMIT
+        │
+【你已有】MySQL 引擎（业务表 + 知识库表 + 可选向量）+ 库内大模型通道</pre>
+
+    <h3>3.5 一张「还要开发吗」速查表</h3>
+    <table>
+      <thead>
+        <tr><th>能力</th><th>还要开发吗？</th><th>一句话</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>LLM 推理本身</td><td><strong>不用再买/再训</strong></td><td>复用 MySQL 已对接的大模型通道</td></tr>
+        <tr><td>MySQL 查询执行</td><td><strong>不用</strong></td><td>已有引擎；补只读账号与超时即可</td></tr>
+        <tr><td>方言转换</td><td><strong>不用（现阶段）</strong></td><td>单 MySQL 方言</td></tr>
+        <tr><td>会话 / 多轮 / 澄清 UX</td><td><strong>要</strong></td><td>库内 LLM 不管 Session 与前端选项</td></tr>
+        <tr><td>知识库与元数据治理</td><td><strong>要（重点）</strong></td><td>准确率主要靠它，不靠换模型</td></tr>
+        <tr><td>Text2SQL 编排与校验</td><td><strong>要</strong></td><td>LLM 只是生成器；编排+SQLGlot 才是产品</td></tr>
+        <tr><td>行级权限</td><td><strong>要</strong></td><td>MySQL 无 PG 式 RLS，必须应用层/AST 注入</td></tr>
+        <tr><td>图表与对话前端</td><td><strong>要</strong></td><td>开源 UI + ECharts 可快速搭</td></tr>
+        <tr><td>Text2DSL 四 Agent / 波动归因</td><td><strong>可二期</strong></td><td>MVP 不阻塞</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>四、还原依据与原始出处</h2>
+    <p class="note">腾讯官方材料中包含意图澄清流程图与 DSL 协议示例等局部图示，但未公开完整的分层架构大图；本图为按以下官方材料的文字描述进行的组件级还原。其中「图表渲染引擎的结果缓存机制」为根据"图表一键切换无需重新计算"的产品行为做出的合理推断；「简单/复杂查询在两条通道间的分流策略」为根据官方"默认 Text2SQL + Text2DSL 解决复杂计算"表述做出的合理推断；其余组件与交互均有原文依据。第三章「落地开发能力清单」是在腾讯链路组件基础上，针对「已有 MySQL + 库内对接大模型」场景给出的工程化映射与开源选型建议。</p>
     <ul class="src">
       <li>腾讯云大数据团队：<a href="https://cloud.tencent.cn/developer/article/2470653" target="_blank">《腾讯云ChatBI：基于大模型的效果调优方案探索》</a>（意图澄清管线、Text2SQL/Text2DSL 双路线、DSL 协议示例、4 个 Multi-Agent、ICL 调优）</li>
       <li>腾讯云官方：<a href="https://main.qcloudimg.com/raw/document/product/pdf/590_107688_cn.pdf" target="_blank">《腾讯云 BI 智能助手 ChatBI 产品手册（PDF）》</a>（智能选表、四类知识库、波动归因算法原理、读取模式与安全、嵌出 Token 鉴权、多终端）</li>
